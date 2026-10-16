@@ -1,0 +1,95 @@
+name: Collect jobs
+
+# Daily ETL: fetch postings from every source, rebuild dataset.json, add the day to history.json
+# and commit both.
+# Raw snapshots are never versioned (they hold full descriptions); the Actions cache carries them
+# between runs so "first seen" dates and delisted postings keep working.
+
+on:
+  schedule:
+    - cron: "17 9 * * *" # 06:17 in Brasília; off the hour, when GitHub's scheduler is less busy
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+env:
+  RAW_DIR: backend/data/raw
+  DATASET: backend/data/processed/dataset.json
+  HISTORY: backend/data/processed/history.json
+  KEEP_SNAPSHOTS: 30 # per source; matches MAX_RAW_SNAPSHOTS_PER_SOURCE
+  MIN_KEPT_RATIO: 50 # % of the previous job count below which the new dataset is rejected
+
+jobs:
+  collect:
+    name: Collect and process
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install
+        # Editable: settings resolve DATA_DIR relative to the backend/ source tree.
+        run: pip install -e backend
+
+      - name: Restore raw snapshots
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.RAW_DIR }}
+          key: raw-snapshots-${{ github.run_id }}
+          restore-keys: raw-snapshots-
+
+      - name: Collect and process
+        working-directory: backend
+        run: job-analyzer run
+
+      - name: Prune old snapshots
+        if: ${{ !cancelled() }}
+        run: |
+          rm -rf -- "$RAW_DIR/remotar" # retired source: its snapshots are not kept
+          for dir in "$RAW_DIR"/*/; do
+            ls -1 "$dir"*.json | sort -r | tail -n +$((KEEP_SNAPSHOTS + 1)) | xargs -r rm --
+          done
+      - name: Save raw snapshots
+        if: ${{ !cancelled() }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.RAW_DIR }}
+          key: raw-snapshots-${{ github.run_id }}
+
+      - name: Sanity check
+        # A source that changed its API can silently return far fewer jobs: keep the old dataset.
+        run: |
+          new=$(jq '.metadata.stats.kept' "$DATASET")
+          old=$(git show "HEAD:$DATASET" | jq '.metadata.stats.kept')
+          echo "Jobs in dataset: $old -> $new"
+          if (( new * 100 < old * MIN_KEPT_RATIO )); then
+            echo "::error::Dataset shrank from $old to $new jobs (below $MIN_KEPT_RATIO%); not committing."
+            exit 1
+          fi
+
+      - name: Record history
+        working-directory: backend
+        run: job-analyzer history
+
+      - name: Commit dataset and history
+        run: |
+          git add -- "$DATASET" "$HISTORY"
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          kept=$(jq '.metadata.stats.kept' "$DATASET")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update dataset ($kept jobs)"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
