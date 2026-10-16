@@ -55,7 +55,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # SecurityHeaders -> CORS -> TrustedHost -> RateLimit -> GZip -> routes
     # (CORS sits outside the limiter so that 429 responses are still readable by the browser).
     app.add_middleware(GZipMiddleware, minimum_size=1024)
-    app.add_middleware(RateLimitMiddleware, limit=settings.api_rate_limit_per_minute)
+    app.add_middleware(
+        RateLimitMiddleware,
+        limit=settings.api_rate_limit_per_minute,
+        client_ip_header=settings.api_client_ip_header,
+    )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.api_allowed_hosts)
     app.add_middleware(
         CORSMiddleware,

@@ -169,6 +169,25 @@ def test_rate_limit(settings: Settings, store: DataStore, sample_dataset: Datase
         assert client.get("/health").status_code == 200  # health checks are exempt
 
 
+def test_rate_limit_by_proxy_header(
+    settings: Settings, store: DataStore, sample_dataset: Dataset
+) -> None:
+    store.save_dataset(sample_dataset)
+
+    def statuses(app_settings: Settings) -> list[int]:
+        with TestClient(create_app(app_settings)) as client:
+            return [
+                client.get("/api/v1/meta", headers={"X-Real-IP": ip}).status_code
+                for ip in ("203.0.113.1", "203.0.113.1", "203.0.113.2")
+            ]
+
+    limited = settings.model_copy(update={"api_rate_limit_per_minute": 1})
+    # Ignored unless configured: a client could otherwise pick a fresh IP for every request.
+    assert statuses(limited) == [200, 429, 429]
+    trusted = limited.model_copy(update={"api_client_ip_header": "x-real-ip"})
+    assert statuses(trusted) == [200, 429, 200]
+
+
 def test_docs_are_disabled_in_production(settings: Settings) -> None:
     production = settings.model_copy(update={"environment": Environment.PRODUCTION})
     with TestClient(create_app(production)) as client:
