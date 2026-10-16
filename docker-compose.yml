@@ -1,0 +1,41 @@
+# Sobe API + dashboard:  docker compose up --build   ->  http://localhost:8080
+# Atualizar os dados:     docker compose run --rm api job-analyzer run
+services:
+  api:
+    build: ./backend
+    environment:
+      API_CORS_ORIGINS: http://localhost:8080
+    env_file:
+      - path: ./backend/.env
+        required: false
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped

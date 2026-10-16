@@ -1,0 +1,46 @@
+# ---------------------------------------------------------------- secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------- data
+# Raw snapshots contain full job descriptions: kept local, never versioned.
+backend/data/raw/*
+!backend/data/raw/.gitkeep
+backend/data/processed/*.tmp
+backend/logs/
+
+# ---------------------------------------------------------------- node / frontend
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+
+# ---------------------------------------------------------------- tooling / OS
+.playwright-mcp/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log
