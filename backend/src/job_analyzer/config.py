@@ -123,6 +123,9 @@ class Settings(BaseSettings):
     api_allowed_hosts: CsvList = Field(default_factory=lambda: ["localhost", "127.0.0.1"])
     # Each filter change fires ~8 requests (one per dashboard section): leave room for exploring.
     api_rate_limit_per_minute: int = Field(default=300, ge=1, le=100_000)
+    # Request header with the real client IP, for proxies that overwrite it (Vercel: x-real-ip).
+    # Unset, the socket address is used: never name a header that clients can set themselves.
+    api_client_ip_header: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
     api_enable_docs: bool = True
 
     @field_validator(

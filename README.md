@@ -16,6 +16,8 @@ num dashboard interativo, **o que o mercado está exigindo** e **o que falta no 
 ![Stack](https://img.shields.io/badge/React_19-TypeScript-61DAFB?logo=react&logoColor=black)
 ![Stack](https://img.shields.io/badge/Tailwind_CSS_4-Recharts-06B6D4?logo=tailwindcss&logoColor=white)
 
+![Aba Mercado do dashboard: competências mais exigidas, categorias, modalidade e estados](docs/dashboard-mercado.png)
+
 ---
 
 ## Sumário
@@ -27,10 +29,11 @@ num dashboard interativo, **o que o mercado está exigindo** e **o que falta no 
 5. [Como a análise funciona](#como-a-análise-funciona)
 6. [Segurança e boas práticas](#segurança-e-boas-práticas)
 7. [Como rodar localmente](#como-rodar-localmente)
-8. [API REST](#api-rest)
-9. [Qualidade: testes, lint e CI](#qualidade-testes-lint-e-ci)
-10. [Adicionando uma nova fonte de vagas](#adicionando-uma-nova-fonte-de-vagas)
-11. [Limitações e próximos passos](#limitações-e-próximos-passos)
+8. [Deploy na Vercel](#deploy-na-vercel)
+9. [API REST](#api-rest)
+10. [Qualidade: testes, lint e CI](#qualidade-testes-lint-e-ci)
+11. [Adicionando uma nova fonte de vagas](#adicionando-uma-nova-fonte-de-vagas)
+12. [Limitações e próximos passos](#limitações-e-próximos-passos)
 
 ---
 
@@ -198,9 +201,10 @@ flowchart LR
 │   │   ├── pipeline.py         # Orquestração collect → process
 │   │   └── cli.py              # job-analyzer collect | process | run | serve
 │   ├── scripts/                # collect.ps1 e schedule-collection.ps1 (coleta diária no Windows)
-│   ├── tests/                  # 288 testes (pytest)
+│   ├── tests/                  # 303 testes (pytest)
 │   ├── data/processed/         # dataset.json (snapshot versionado)
 │   ├── .env.example
+│   ├── app.py + vercel.json    # Entrada da API como Vercel Function
 │   ├── Dockerfile
 │   └── pyproject.toml          # dependências + config de ruff, mypy e pytest
 ├── frontend/
@@ -210,9 +214,12 @@ flowchart LR
 │   │   ├── hooks/              # Queries (TanStack Query), filtros na URL, tema, perfil do gap
 │   │   ├── lib/                # Formatação pt-BR, URLs seguras, storage seguro, paleta
 │   │   └── config/env.ts       # Validação das variáveis VITE_*
+│   ├── public/og-image.png     # Imagem da prévia de link (LinkedIn, WhatsApp)
 │   ├── .env.example
 │   ├── Dockerfile + nginx.conf
-│   └── vite.config.ts          # Inclui o plugin que injeta a Content-Security-Policy no build
+│   ├── vercel.json             # Cabeçalhos de segurança e cache na Vercel
+│   └── vite.config.ts          # Plugins que injetam a Content-Security-Policy e a prévia de link
+├── docs/                       # Captura de tela do README
 ├── .github/                    # CI (lint, tipos, testes, build, auditoria, gitleaks), coleta diária + Dependabot
 ├── .pre-commit-config.yaml
 └── docker-compose.yml
@@ -393,6 +400,30 @@ cabeçalhos de segurança no nginx e na API, e o pipeline rodando dentro do cont
 
 ---
 
+## Deploy na Vercel
+
+São dois projetos na Vercel ligados a este repositório, um por pasta (*Root Directory*):
+
+| Projeto | Root Directory | Variáveis de ambiente |
+|---|---|---|
+| API | `backend` | `ENVIRONMENT=production`<br>`API_CORS_ORIGINS=https://<dashboard>.vercel.app`<br>`API_ALLOWED_HOSTS=<api>.vercel.app`<br>`API_CLIENT_IP_HEADER=x-real-ip` |
+| Dashboard | `frontend` | `VITE_API_BASE_URL=https://<api>.vercel.app` |
+
+- A API vira uma Vercel Function a partir de `backend/app.py`, com o `dataset.json` dentro do
+  pacote. Cada commit da coleta diária gera um deploy novo da API com os dados do dia; o
+  `vercel.json` de cada pasta pula o build quando o commit não mexe nela, então o dashboard não é
+  recompilado todo dia.
+- O *rate limit* usa o `x-real-ip`, que a Vercel sempre sobrescreve (o cliente não consegue
+  forjar). Ele continua em memória, então conta por instância da função.
+- A prévia de link usa o domínio de produção do projeto (`VERCEL_PROJECT_PRODUCTION_URL`); com
+  domínio próprio, defina `VITE_SITE_URL`.
+- Os cabeçalhos de segurança do dashboard estão em `frontend/vercel.json` (os mesmos do
+  `nginx.conf`), e a Content-Security-Policy vem do build.
+- No plano Hobby, um repositório **privado** só publica commits do dono da conta: os commits da
+  coleta diária só chegam ao site com o repositório público.
+
+---
+
 ## API REST
 
 Todos os endpoints são `GET`, retornam JSON e aceitam os filtros `level` (`estagio`, `junior`),
@@ -428,13 +459,13 @@ curl "http://127.0.0.1:8000/api/v1/skills/gap?known=python,sql&level=estagio&are
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 289 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+pytest --cov                 # 303 testes: skills, classificação, limpeza, fontes (HTTP mockado),
                              # cliente HTTP, storage, analytics, API e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (106 testes)
+npm test                     # Vitest + Testing Library (110 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
@@ -510,8 +541,7 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
   *rate limit* do gateway.
 - **Vagas encerradas**: as que passam do prazo de inscrição somem na hora (pelo horário de
   Brasília), mesmo antes da próxima coleta; vagas retiradas pela fonte saem na coleta seguinte.
-- Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL),
-  deploy (Render/Fly.io + Vercel).
+- Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
 
 ---
 
