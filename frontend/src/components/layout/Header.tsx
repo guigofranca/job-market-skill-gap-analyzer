@@ -66,7 +66,14 @@ export function Header({
                 )}
               </>
             ) : loading ? (
-              'carregando dados…'
+              <>
+                carregando dados…
+                {/* Reserves the loaded line's wrapping, so the page does not jump when it arrives. */}
+                <span className="invisible">
+                  {' '}
+                  publicadas entre 00/00/0000 e 00/00/0000 · atualizado há 00 horas
+                </span>
+              </>
             ) : (
               'dados indisponíveis no momento'
             )}

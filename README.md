@@ -5,6 +5,8 @@ Ferramenta analítica *full-stack* que coleta **vagas reais** de Estágio e Jún
 competências pedidas em cada anúncio e mostra,
 num dashboard interativo, **o que o mercado está exigindo** e **o que falta no seu perfil**.
 
+**🔗 Acesse o dashboard: [seu-empregobr.vercel.app](https://seu-empregobr.vercel.app)** (dados atualizados todo dia)
+
 > Perguntas que o projeto responde:
 > - Quais tecnologias aparecem em mais vagas de estágio em Dados? E de júnior em Desenvolvimento?
 > - O que muda entre os requisitos de Estágio e de Júnior?
@@ -121,7 +123,7 @@ contados como inválidos, sem derrubar o pipeline.
 </details>
 
 O repositório inclui um *snapshot* processado em `backend/data/processed/dataset.json` com
-**467 vagas reais** coletadas em 12/10/2026, para que o dashboard funcione logo após clonar.
+as **vagas reais da coleta mais recente** (algumas centenas), para que o dashboard funcione logo após clonar.
 Um GitHub Action atualiza esse snapshot todo dia; rode `job-analyzer run` para atualizar localmente.
 
 **Uso responsável:** o dataset processado guarda apenas título, empresa, local, link, data, nível,
@@ -284,7 +286,7 @@ flowchart LR
    - **Cobertura do gap** = |skills que você tem ∩ skills da vaga| ÷ |skills da vaga|.
    - **"Destrava N vagas"** = vagas em que aquela competência é a **única** que falta no seu perfil.
 
-O relatório do processamento mostra quantos registros saíram em cada etapa:
+O relatório do processamento mostra quantos registros saíram em cada etapa (exemplo de uma coleta):
 
 ```
 Processamento
@@ -313,7 +315,7 @@ Processamento
 | **Validação de entrada (frontend)** | Zod valida configuração (`VITE_*`), toda resposta da API, filtros vindos da URL e dados do `localStorage`. Valores inválidos são descartados, não renderizados. |
 | **XSS** | React escapa o conteúdo; nenhum `dangerouslySetInnerHTML` (regra de lint). Links de vagas passam por `toSafeHref` (só `http/https`) e abrem com `rel="noopener noreferrer"`. **Content-Security-Policy** estrita injetada no build (`script-src 'self'`, `connect-src` restrito à API). |
 | **Injeção / ReDoS** | Busca textual da API usa `str.contains(..., regex=False)`; parâmetros montados com `URLSearchParams`. |
-| **Hardening da API** | Somente `GET`; CORS com lista de origens explícita (sem `*` em produção); `TrustedHost`; *rate limit* por IP (429 + `Retry-After`); headers `X-Content-Type-Options`, `X-Frame-Options`, CSP, `Referrer-Policy`, HSTS em produção; `X-Request-ID` para rastreio; `/docs` desligado em produção; header `Server` removido. |
+| **Hardening da API** | Somente `GET`; CORS com lista de origens explícita (sem `*` em produção); `TrustedHost`; *rate limit* por IP (429 + `Retry-After`; na Vercel, aplicado pelo Firewall do projeto); headers `X-Content-Type-Options`, `X-Frame-Options`, CSP, `Referrer-Policy`, HSTS em produção; `X-Request-ID` para rastreio; `/docs` desligado em produção; header `Server` do Uvicorn removido (na Vercel, a plataforma adiciona o próprio `Server: Vercel`). |
 | **Tratamento de erros (backend)** | Hierarquia de exceções de domínio; uma fonte com falha não interrompe as outras; *retries* com *backoff* exponencial + *jitter* respeitando `Retry-After`; respostas 4xx/5xx sem stack trace; dataset inválido → 503 com mensagem clara, mantendo o último dataset válido. |
 | **Tratamento de erros (frontend)** | `ErrorBoundary` na raiz (com tela específica para configuração inválida) **e por seção**; estados de carregando / erro com "tentar novamente" / vazio em cada widget; *retry* automático só para falhas transitórias; dados anteriores mantidos (esmaecidos) durante recarregamentos. |
 | **Integridade de dados** | Escrita atômica (arquivo temporário + `os.replace`), proteção contra *path traversal*, limites de tamanho de resposta HTTP e de arquivo. |
@@ -414,7 +416,10 @@ São dois projetos na Vercel ligados a este repositório, um por pasta (*Root Di
   `vercel.json` de cada pasta pula o build quando o commit não mexe nela, então o dashboard não é
   recompilado todo dia.
 - O *rate limit* usa o `x-real-ip`, que a Vercel sempre sobrescreve (o cliente não consegue
-  forjar). Ele continua em memória, então conta por instância da função.
+  forjar). Ele continua em memória, então conta por instância da função: requisições paralelas
+  caem em instâncias diferentes e passam do limite. Por isso o limite real fica numa regra do
+  Firewall da Vercel no projeto da API (*Firewall → Configure → New Rule*): *Request Path*
+  começa com `/api/` → *Rate Limit*, 300 requisições a cada 60 s, por IP.
 - A prévia de link usa o domínio de produção do projeto (`VERCEL_PROJECT_PRODUCTION_URL`); com
   domínio próprio, defina `VITE_SITE_URL`.
 - Os cabeçalhos de segurança do dashboard estão em `frontend/vercel.json` (os mesmos do
@@ -538,7 +543,8 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
 - **Prazo de inscrição** só da Gupy; nas outras fontes a vaga vale enquanto estiver publicada.
 - **Rate limit em memória** (300 req/min por IP; cada mudança de filtro faz ~8 requisições):
   adequado para uma instância; com várias réplicas, usar Redis ou o
-  *rate limit* do gateway.
+  *rate limit* do gateway (na Vercel, a regra do Firewall descrita em
+  [Deploy na Vercel](#deploy-na-vercel)).
 - **Vagas encerradas**: as que passam do prazo de inscrição somem na hora (pelo horário de
   Brasília), mesmo antes da próxima coleta; vagas retiradas pela fonte saem na coleta seguinte.
 - Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
