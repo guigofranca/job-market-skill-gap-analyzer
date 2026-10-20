@@ -40,7 +40,10 @@ export default function App() {
       <Header meta={meta.data} loading={meta.isPending} theme={theme} onToggleTheme={toggleTheme} />
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         {meta.isPending ? (
-          <LoadingState height={420} label="Carregando painel…" />
+          // A screen tall, so the footer stays below the fold until the dashboard replaces it.
+          <div className="min-h-dvh">
+            <LoadingState height={420} label="Carregando painel…" />
+          </div>
         ) : meta.isError ? (
           <ErrorState error={meta.error} onRetry={() => void meta.refetch()} />
         ) : (
