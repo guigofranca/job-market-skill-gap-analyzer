@@ -3,18 +3,22 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
+/** Origin of a configured URL, or '' when it is missing or invalid. */
+function originOf(url: string | undefined): string {
+  try {
+    return url ? new URL(url).origin : ''
+  } catch {
+    return ''
+  }
+}
+
 /**
  * Injects a strict Content-Security-Policy into the production build only
  * (the dev server needs inline scripts for React Fast Refresh).
  * connect-src is limited to this origin plus the configured API origin.
  */
 function contentSecurityPolicy(apiBaseUrl: string | undefined): Plugin {
-  let apiOrigin = ''
-  try {
-    apiOrigin = apiBaseUrl ? new URL(apiBaseUrl).origin : ''
-  } catch {
-    apiOrigin = '' // invalid URL: the app shows a configuration error at runtime
-  }
+  const apiOrigin = originOf(apiBaseUrl) // invalid URL: the app shows a configuration error
   const policy = [
     "default-src 'self'",
     "script-src 'self'",
@@ -45,12 +49,7 @@ function contentSecurityPolicy(apiBaseUrl: string | undefined): Plugin {
  * site's address is known: VITE_SITE_URL, or the production domain Vercel sets at build time.
  */
 function socialPreview(siteUrl: string | undefined): Plugin {
-  let origin = ''
-  try {
-    origin = siteUrl ? new URL(siteUrl).origin : ''
-  } catch {
-    origin = '' // invalid URL: previews fall back to title and description only
-  }
+  const origin = originOf(siteUrl) // invalid URL: previews fall back to title and description
   const tags = origin
     ? [
         { property: 'og:url', content: `${origin}/` },
@@ -71,6 +70,57 @@ function socialPreview(siteUrl: string | undefined): Plugin {
   }
 }
 
+/**
+ * Opens the API connection (DNS, TCP, TLS) while the scripts download, not after they run.
+ * crossorigin: the dashboard's fetches are CORS requests without credentials.
+ */
+function apiPreconnect(apiBaseUrl: string | undefined): Plugin {
+  const apiOrigin = originOf(apiBaseUrl)
+  return {
+    name: 'api-preconnect',
+    apply: 'build',
+    transformIndexHtml: () =>
+      apiOrigin
+        ? [
+            {
+              tag: 'link',
+              attrs: { rel: 'preconnect', href: apiOrigin, crossorigin: true },
+              injectTo: 'head',
+            },
+          ]
+        : [],
+  }
+}
+
+/**
+ * Preloads the Latin subset of Geist, which every page is set in. Otherwise the font is only
+ * requested once the stylesheet is parsed, and its late swap shifts the layout.
+ */
+function fontPreload(): Plugin {
+  let base = '/'
+  return {
+    name: 'font-preload',
+    apply: 'build',
+    configResolved: (config) => {
+      base = config.base
+    },
+    transformIndexHtml: (_, ctx) =>
+      Object.keys(ctx.bundle ?? {})
+        .filter((fileName) => /geist-latin-wght-normal-[\w-]+\.woff2$/.test(fileName))
+        .map((fileName) => ({
+          tag: 'link',
+          attrs: {
+            rel: 'preload',
+            href: `${base}${fileName}`,
+            as: 'font',
+            type: 'font/woff2',
+            crossorigin: true, // fonts are always fetched in CORS mode
+          },
+          injectTo: 'head',
+        })),
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
   const vercelDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -82,6 +132,8 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       contentSecurityPolicy(env.VITE_API_BASE_URL),
       socialPreview(siteUrl),
+      apiPreconnect(env.VITE_API_BASE_URL),
+      fontPreload(),
     ],
     server: { port: 5173, strictPort: true },
     preview: { port: 4173, strictPort: true },
@@ -99,6 +151,7 @@ export default defineConfig(({ mode }) => {
                 priority: 3,
               },
               {
+                // Only the lazy-loaded market tab imports it, so it is not fetched on first load.
                 name: 'charts',
                 test: /node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor)[\\/]/,
                 priority: 2,
