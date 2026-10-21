@@ -17,7 +17,11 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from job_analyzer import __version__
 from job_analyzer.analytics import DatasetRepository
 from job_analyzer.api.errors import register_exception_handlers
-from job_analyzer.api.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+from job_analyzer.api.middleware import (
+    CdnCacheMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from job_analyzer.api.routes import health_router, router
 from job_analyzer.config import Environment, Settings, get_settings
 from job_analyzer.logging_config import configure_logging
@@ -52,9 +56,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     # Starlette runs the last-added middleware first. Effective order for a request:
-    # SecurityHeaders -> CORS -> TrustedHost -> RateLimit -> GZip -> routes
+    # SecurityHeaders -> CORS -> TrustedHost -> RateLimit -> CdnCache -> GZip -> routes
     # (CORS sits outside the limiter so that 429 responses are still readable by the browser).
     app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(CdnCacheMiddleware)
     app.add_middleware(
         RateLimitMiddleware,
         limit=settings.api_rate_limit_per_minute,

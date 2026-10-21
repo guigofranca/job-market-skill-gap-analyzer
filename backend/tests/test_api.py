@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
 from job_analyzer.api.app import create_app
+from job_analyzer.api.middleware import seconds_until_midnight
+from job_analyzer.brazil import BRASILIA
 from job_analyzer.config import Environment, Settings
 from job_analyzer.models import Dataset
 from job_analyzer.processing.skills import TAXONOMY
@@ -145,6 +148,22 @@ def test_cors_allows_only_configured_origins(client: TestClient) -> None:
     assert allowed.headers["access-control-allow-origin"] == "http://localhost:5173"
     denied = client.get("/api/v1/meta", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in denied.headers
+
+
+def test_cdn_caches_api_responses_until_midnight(client: TestClient) -> None:
+    response = client.get("/api/v1/meta")
+    ttl = int(response.headers["Vercel-CDN-Cache-Control"].removeprefix("max-age="))
+    assert 0 <= ttl <= 24 * 3600
+    # Cached responses must not mix up origins: a cached reply to curl (no Origin) would
+    # otherwise reach the dashboard without its CORS header.
+    assert "Origin" in response.headers["Vary"]
+    assert "Vercel-CDN-Cache-Control" not in client.get("/health").headers
+    assert "Vercel-CDN-Cache-Control" not in client.get("/api/v1/jobs?level=x").headers  # 422
+
+
+def test_seconds_until_midnight() -> None:
+    assert seconds_until_midnight(datetime(2026, 1, 31, 23, 0, 0, 500_000, BRASILIA)) == 3599
+    assert seconds_until_midnight(datetime(2026, 1, 31, 0, 0, tzinfo=BRASILIA)) == 24 * 3600
 
 
 def test_untrusted_host_is_rejected(client: TestClient) -> None:
