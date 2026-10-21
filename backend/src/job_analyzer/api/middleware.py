@@ -1,4 +1,4 @@
-"""Pure-ASGI middlewares: security headers + request id, and per-client rate limiting."""
+"""Pure-ASGI middlewares: security headers + request id, CDN caching, per-client rate limiting."""
 
 from __future__ import annotations
 
@@ -7,13 +7,60 @@ import re
 import time
 import uuid
 from collections import OrderedDict, deque
+from collections.abc import Callable
+from datetime import datetime, timedelta
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from job_analyzer.brazil import BRASILIA
+
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 DOCS_PREFIXES = ("/docs", "/redoc", "/openapi.json")
+
+
+def seconds_until_midnight(now: datetime) -> int:
+    """Whole seconds from `now` until the next midnight in its own timezone."""
+    midnight = datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), now.tzinfo)
+    return math.floor((midnight - now).total_seconds())
+
+
+class CdnCacheMiddleware:
+    """Lets Vercel's CDN serve successful API responses without running the function.
+
+    An answer only changes when a new dataset is deployed (Vercel's CDN cache is per deployment,
+    so the daily redeploy starts it empty) or at midnight in Brasília, when postings past their
+    deadline drop out. So responses are cached until that midnight. The browser-facing
+    Cache-Control is left alone, and errors (4xx, 429, 503) are never cached. Responses already
+    vary on Origin (CORSMiddleware sets `Vary: Origin` on every response), so one origin's CORS
+    headers are never served to another.
+    """
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        prefix: str = "/api/",
+        now: Callable[[], datetime] = lambda: datetime.now(BRASILIA),
+    ) -> None:
+        self.app = app
+        self.prefix = prefix
+        self.now = now
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not scope["path"].startswith(self.prefix):
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_cache(message: Message) -> None:
+            if message["type"] == "http.response.start" and message["status"] == 200:
+                ttl = seconds_until_midnight(self.now())
+                # Read by Vercel only and not passed on, so no other cache keeps the response.
+                MutableHeaders(scope=message)["Vercel-CDN-Cache-Control"] = f"max-age={ttl}"
+            await send(message)
+
+        await self.app(scope, receive, send_with_cache)
 
 
 class SecurityHeadersMiddleware:
