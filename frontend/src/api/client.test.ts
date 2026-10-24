@@ -83,6 +83,6 @@ describe('apiGet', () => {
     mockFetch(new TypeError('Failed to fetch'))
     const error = await apiGet('/x', Schema).catch((caught: unknown) => caught)
     expect(error).toMatchObject({ kind: 'network', retryable: true })
-    expect((error as Error).message).toContain('backend')
+    expect((error as Error).message).toContain('Verifique sua conexão')
   })
 })
