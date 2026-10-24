@@ -193,6 +193,9 @@ describe('JobList', () => {
     expect(rows[1]).toHaveTextContent(
       'Faltam 2: comece por Power BI, a mais pedida delas (30% das vagas).',
     )
+    // 1 of 1 reads as a perfect match: say the posting lists little.
+    expect(rows[0]).toHaveTextContent('poucos requisitos no anúncio')
+    expect(rows[1]).not.toHaveTextContent('poucos requisitos no anúncio')
   })
 
   it('offers the "missing one skill" tab when nothing is fully covered yet', () => {
