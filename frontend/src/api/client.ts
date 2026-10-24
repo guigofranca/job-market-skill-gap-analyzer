@@ -10,14 +10,26 @@ export type ApiErrorKind =
   | 'server'
   | 'invalid_response'
 
+/** What visitors read: no internals, always something they can do. */
 const USER_MESSAGES: Record<ApiErrorKind, string> = {
-  network: 'Não foi possível conectar à API. Verifique se o backend está rodando.',
-  timeout: 'A API demorou demais para responder. Tente novamente.',
-  unavailable: 'Os dados ainda não foram gerados. Rode o pipeline no backend (job-analyzer run).',
+  network: 'Não foi possível carregar os dados. Verifique sua conexão e tente novamente.',
+  timeout: 'O servidor demorou demais para responder. Tente novamente.',
+  unavailable: 'Os dados estão sendo atualizados. Tente novamente em alguns minutos.',
   rate_limited: 'Muitas requisições em pouco tempo. Aguarde alguns segundos.',
   bad_request: 'Filtro inválido. Limpe os filtros e tente novamente.',
-  server: 'A API encontrou um erro inesperado.',
-  invalid_response: 'A API respondeu em um formato inesperado.',
+  server: 'O servidor encontrou um erro inesperado. Tente novamente em instantes.',
+  invalid_response: 'O servidor respondeu em um formato inesperado. Recarregue a página.',
+}
+
+/** Added in development only, where the reader is the one running the backend. */
+const DEV_HINTS: Partial<Record<ApiErrorKind, string>> = {
+  network: 'O backend está rodando (job-analyzer serve)?',
+  unavailable: 'Rode o pipeline no backend (job-analyzer run).',
+}
+
+function messageFor(kind: ApiErrorKind): string {
+  const hint = import.meta.env.DEV ? DEV_HINTS[kind] : undefined
+  return hint ? `${USER_MESSAGES[kind]} ${hint}` : USER_MESSAGES[kind]
 }
 
 export class ApiError extends Error {
@@ -26,7 +38,7 @@ export class ApiError extends Error {
   readonly requestId: string | undefined
 
   constructor(kind: ApiErrorKind, options: { status?: number; requestId?: string | null } = {}) {
-    super(USER_MESSAGES[kind])
+    super(messageFor(kind))
     this.name = 'ApiError'
     this.kind = kind
     this.status = options.status
