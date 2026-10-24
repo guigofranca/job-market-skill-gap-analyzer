@@ -8,6 +8,7 @@ const longDate = new Intl.DateTimeFormat('pt-BR', {
   year: 'numeric',
 })
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 
 export const formatNumber = (value: number) => integer.format(value)
 export const formatDecimal = (value: number) => decimal.format(value)
@@ -27,6 +28,18 @@ function parseIsoDate(iso: string): Date | null {
 export function formatDate(iso: string | null): string {
   const date = iso ? parseIsoDate(iso) : null
   return date ? longDate.format(date) : '—'
+}
+
+/** '2026-10-24' -> '24/10' (chart axes). */
+export function formatDayMonth(iso: string): string {
+  const date = parseIsoDate(iso)
+  return date ? dayMonth.format(date) : iso
+}
+
+/** A change of share in percentage points: +3,2 p.p. */
+export function formatPoints(change: number): string {
+  const points = decimal.format(Math.abs(change) * 100)
+  return `${change > 0 ? '+' : change < 0 ? '−' : ''}${points} p.p.`
 }
 
 export function formatDateTime(iso: string): string {
@@ -60,7 +73,6 @@ const currency = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
   maximumFractionDigits: 0,
 })
-const dayMonth = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 
 /** "R$ 1.837", "R$ 1.200 – R$ 1.590", "a partir de R$ 2.000", "até R$ 3.000"; null if unknown. */
 export function formatSalary(min: number | null, max: number | null): string | null {

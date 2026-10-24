@@ -208,6 +208,20 @@ export const GapSchema = z.object({
   recommendations: z.array(SkillStatSchema.extend({ unlocks: count })).max(50),
 })
 
+const TrendPointSchema = z.object({ day: z.iso.date(), count, share })
+const SkillTrendSchema = SkillRefSchema.extend({
+  points: z.array(TrendPointSchema).max(400),
+  /** Share on the last day minus the share on the first day. */
+  change: z.number().min(-1).max(1),
+})
+
+export const TrendsSchema = z.object({
+  days: z.array(z.object({ day: z.iso.date(), jobs: count })).max(400),
+  skills: z.array(SkillTrendSchema).max(10),
+  rising: z.array(SkillTrendSchema).max(10),
+  falling: z.array(SkillTrendSchema).max(10),
+})
+
 /** Who can apply, as stated by the posting. */
 export const RequirementsSchema = z.object({
   courses: z.array(CourseSchema).max(COURSES.length),
@@ -303,6 +317,8 @@ export type LevelComparison = z.infer<typeof LevelComparisonSchema>
 export type Workplaces = z.infer<typeof WorkplacesSchema>
 export type Locations = z.infer<typeof LocationsSchema>
 export type Gap = z.infer<typeof GapSchema>
+export type Trends = z.infer<typeof TrendsSchema>
+export type SkillTrend = Trends['skills'][number]
 export type Job = z.infer<typeof JobSchema>
 export type Jobs = z.infer<typeof JobsSchema>
 export type Match = z.infer<typeof MatchSchema>

@@ -1,17 +1,21 @@
 import type { UseQueryResult } from '@tanstack/react-query'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 import type { Filters } from '../../api/endpoints'
-import type { Summary } from '../../api/schemas'
+import type { SkillTrend, Summary } from '../../api/schemas'
 import {
   useLevelComparison,
   useLocations,
   useTopSkills,
+  useTrends,
   useWorkplaces,
 } from '../../hooks/useDashboardData'
-import { formatNumber, formatPercent } from '../../lib/format'
+import { useSkillColors } from '../../hooks/useSkillColors'
+import { formatDate, formatNumber, formatPercent, formatPoints } from '../../lib/format'
 import { CATEGORY_LABELS, WORKPLACE_LABELS } from '../../lib/labels'
 import { LevelComparisonChart } from '../charts/LevelComparisonChart'
 import { WorkplaceChart } from '../charts/WorkplaceChart'
 import { HorizontalBarChart } from '../charts/TopSkillsChart'
+import { JobsPerDayChart, SkillTrendChart } from '../charts/TrendCharts'
 import { Legend } from '../charts/ChartTooltip'
 import { LEVEL_SERIES, skillsToBars, WORKPLACE_SERIES } from '../charts/chartData'
 import { ChartCard, DataTable } from './ChartCard'
@@ -302,5 +306,119 @@ export function LocationsSection({
         grow={grow}
       />
     </ChartCard>
+  )
+}
+
+/**
+ * How demand moves from one collection day to the next. The daily history is kept by level and
+ * area only, so the other filters do not apply here (the subtitle says so).
+ */
+export function TrendsSection({ filters }: { filters: Filters }) {
+  const query = useTrends({ level: filters.level, area: filters.area })
+  const data = query.data
+  const colors = useSkillColors(data?.skills.map((skill) => skill.slug) ?? [])
+  const first = data?.days[0]?.day
+  const last = data?.days.at(-1)?.day
+  const ignored = [
+    filters.state,
+    filters.city,
+    filters.workplace,
+    filters.inclusion,
+    filters.skill,
+  ].some(Boolean)
+
+  return (
+    <ChartCard
+      title="Tendência: o que está subindo e caindo"
+      subtitle={`% das vagas que pedem cada competência, por dia de coleta${first && last ? ` (${formatDate(first)} a ${formatDate(last)})` : ''} · considera só nível e área${ignored ? ' (os outros filtros não se aplicam aqui)' : ''}`}
+      query={query}
+      isEmpty={!data || data.days.length < 2}
+      emptyTitle="Ainda não há dias suficientes de coleta"
+      emptyHint="A tendência aparece a partir do segundo dia de histórico."
+      loadingHeight={300}
+      legend={
+        data && (
+          <Legend
+            items={data.skills.map((skill) => ({
+              key: skill.slug,
+              label: skill.name,
+              color: colors.get(skill.slug) ?? 'var(--axis-text)',
+            }))}
+          />
+        )
+      }
+      table={
+        data && (
+          <DataTable
+            caption="Participação das competências no primeiro e no último dia"
+            columns={[
+              { key: 'name', label: 'Competência' },
+              { key: 'first', label: first ? formatDate(first) : 'Início', align: 'right' },
+              { key: 'last', label: last ? formatDate(last) : 'Fim', align: 'right' },
+              { key: 'change', label: 'Variação', align: 'right' },
+            ]}
+            rows={[...data.skills, ...data.rising, ...data.falling]
+              .filter((skill, index, all) => all.findIndex((s) => s.slug === skill.slug) === index)
+              .map((skill) => ({
+                name: skill.name,
+                first: formatPercent(skill.points[0]?.share ?? 0),
+                last: formatPercent(skill.points.at(-1)?.share ?? 0),
+                change: formatPoints(skill.change),
+              }))}
+          />
+        )
+      }
+    >
+      {data && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="min-w-0 lg:col-span-2">
+            <SkillTrendChart data={data} colors={colors} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-4">
+            <div>
+              <h3 className="text-ink-2 text-sm font-medium">Vagas abertas por dia</h3>
+              <JobsPerDayChart data={data} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Movers title="Em alta" icon="up" items={data.rising} />
+              <Movers title="Em queda" icon="down" items={data.falling} />
+            </div>
+          </div>
+        </div>
+      )}
+    </ChartCard>
+  )
+}
+
+/** Biggest changes of share since the first day: text in ink, the arrow carries the direction. */
+function Movers({
+  title,
+  icon,
+  items,
+}: {
+  title: string
+  icon: 'up' | 'down'
+  items: readonly SkillTrend[]
+}) {
+  const Icon = icon === 'up' ? TrendingUp : TrendingDown
+  return (
+    <section aria-label={title} className="min-w-0">
+      <h3 className="text-ink-2 flex items-center gap-1 text-sm font-medium">
+        <Icon aria-hidden className="text-muted size-4" />
+        {title}
+      </h3>
+      {items.length === 0 ? (
+        <p className="text-muted mt-1 text-xs">Nenhuma mudança relevante ainda.</p>
+      ) : (
+        <ol className="mt-1 flex flex-col gap-0.5 text-xs">
+          {items.slice(0, 4).map((skill) => (
+            <li key={skill.slug} className="flex items-baseline justify-between gap-2">
+              <span className="text-ink truncate">{skill.name}</span>
+              <span className="text-ink-2 shrink-0 tabular-nums">{formatPoints(skill.change)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }

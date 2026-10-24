@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Job } from '../api/schemas'
-import { daysUntil, formatDeadline, formatRelativeTime, formatSalary, isStale } from './format'
+import {
+  daysUntil,
+  formatDayMonth,
+  formatDeadline,
+  formatPoints,
+  formatRelativeTime,
+  formatSalary,
+  isStale,
+} from './format'
 import { jobTags } from './jobTags'
 
 // Intl inserts a non-breaking space after "R$"; normalise it for readable assertions.
@@ -76,6 +84,15 @@ describe('jobTags with deadline and salary', () => {
       'Estágio',
     ])
     expect(tags[1]?.highlight).toBe(true)
+  })
+})
+
+describe('trend formats', () => {
+  it('formats axis days and changes in percentage points', () => {
+    expect(formatDayMonth('2026-10-24')).toBe('24/10')
+    expect(formatPoints(0.0312)).toBe('+3,1 p.p.')
+    expect(formatPoints(-0.025)).toBe('−2,5 p.p.')
+    expect(formatPoints(0)).toBe('0 p.p.')
   })
 })
 
