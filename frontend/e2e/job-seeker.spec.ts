@@ -127,6 +127,7 @@ test('the market tab shows the charts', async ({ page }) => {
   await expect(page).toHaveURL(/aba=mercado/)
   await expect(page.getByRole('heading', { name: 'Categorias de competência' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Estágio × Júnior: o que muda' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Tendência/ })).toBeVisible()
   const workplaces = page.getByRole('figure', { name: /Modalidade de trabalho/ })
   await expect(workplaces.getByText('Todas as áreas')).toBeVisible()
 

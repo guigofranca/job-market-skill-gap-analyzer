@@ -55,6 +55,15 @@ export function useWorkplaces(filters: Omit<Filters, 'area' | 'workplace'>) {
   })
 }
 
+export function useTrends(filters: Pick<Filters, 'level' | 'area'>) {
+  return useQuery({
+    queryKey: ['trends', filters.level, filters.area],
+    queryFn: ({ signal }) => api.trends(filters, signal),
+    placeholderData: keepPreviousData,
+    staleTime: 10 * 60_000,
+  })
+}
+
 export function useGap(filters: Filters, known: readonly string[]) {
   return useQuery({
     queryKey: ['gap', filters, known],

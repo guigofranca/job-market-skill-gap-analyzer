@@ -9,6 +9,7 @@ import {
   SkillPatternsSchema,
   SummarySchema,
   TopSkillsSchema,
+  TrendsSchema,
   WorkplacesSchema,
   type Area,
   type Inclusion,
@@ -43,6 +44,9 @@ export interface JobPage {
 }
 
 const API = '/api/v1'
+export const TREND_DAYS = 30
+/** Lines on the trend chart: few enough to label each one. */
+export const TREND_SKILLS = 4
 
 export const api = {
   meta: (signal?: AbortSignal) => apiGet(`${API}/meta`, MetaSchema, {}, signal),
@@ -63,6 +67,15 @@ export const api = {
   /** Ignores the area and workplace filters: the chart compares them. */
   workplaces: (filters: Omit<Filters, 'area' | 'workplace'>, signal?: AbortSignal) =>
     apiGet(`${API}/workplaces`, WorkplacesSchema, { ...filters }, signal),
+
+  /** The daily history is kept by level and area only: no other filter applies. */
+  trends: (filters: Pick<Filters, 'level' | 'area'>, signal?: AbortSignal) =>
+    apiGet(
+      `${API}/trends`,
+      TrendsSchema,
+      { level: filters.level, area: filters.area, days: TREND_DAYS, limit: TREND_SKILLS },
+      signal,
+    ),
 
   skillPatterns: (signal?: AbortSignal) =>
     apiGet(`${API}/skills/patterns`, SkillPatternsSchema, {}, signal),
