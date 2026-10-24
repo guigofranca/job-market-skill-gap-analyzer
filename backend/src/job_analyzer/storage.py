@@ -102,6 +102,12 @@ class DataStore:
         self._write_model(path, history)
         return path
 
+    def history_mtime(self) -> float | None:
+        try:
+            return self.history_path.stat().st_mtime
+        except FileNotFoundError:
+            return None
+
     # ------------------------------------------------------------------ internals
     def _safe_path(self, *parts: str) -> Path:
         path = self.base_dir.joinpath(*parts).resolve()

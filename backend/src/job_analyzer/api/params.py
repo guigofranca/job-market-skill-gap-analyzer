@@ -121,6 +121,15 @@ class GapParams(FilterParams):
     limit: int = Field(default=10, ge=1, le=30)
 
 
+class TrendsParams(_Params):
+    """history.json is aggregated by level x area: no other filter applies to trends."""
+
+    level: Level | None = None
+    area: Area | None = None
+    days: int = Field(default=30, ge=2, le=365)
+    limit: int = Field(default=5, ge=1, le=10)
+
+
 TitleQuery = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=80)]
 Since = Annotated[
     AwareDatetime | None, Field(description="Only jobs first collected after this moment")
