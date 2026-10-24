@@ -1,24 +1,56 @@
-# Job Market Skill Gap Analyzer
+# Skill Gap Analyzer
 
-Ferramenta analítica *full-stack* que coleta **vagas reais** de Estágio e Júnior nas áreas de
-**Dados, Automação, Desenvolvimento e Infraestrutura** (suporte, redes e segurança), extrai as
-competências pedidas em cada anúncio e mostra,
-num dashboard interativo, **o que o mercado está exigindo** e **o que falta no seu perfil**.
+**O que as vagas de Estágio e Júnior em tecnologia pedem, e o que falta no seu perfil.**
+Dashboard com vagas reais do Brasil (Gupy e Sólides) em Dados, Automação, Desenvolvimento e
+Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
 
-**🔗 Acesse o dashboard: [seu-empregobr.vercel.app](https://seu-empregobr.vercel.app)** (dados atualizados todo dia)
+**🔗 Acesse: [seu-empregobr.vercel.app](https://seu-empregobr.vercel.app)** · feito por [@guigofranca](https://github.com/guigofranca)
 
-> Perguntas que o projeto responde:
-> - Quais tecnologias aparecem em mais vagas de estágio em Dados? E de júnior em Desenvolvimento?
-> - O que muda entre os requisitos de Estágio e de Júnior?
-> - Quem pede Python costuma pedir o quê junto?
-> - Eu sei SQL e Excel: quantas vagas eu cubro e qual competência me abre mais portas?
+![Demonstração: marcar competências, ver as vagas que combinam e o que falta, a aba Mercado e a tendência](docs/demo.gif)
 
 ![Stack](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![Stack](https://img.shields.io/badge/FastAPI-Pandas-009688?logo=fastapi&logoColor=white)
 ![Stack](https://img.shields.io/badge/React_19-TypeScript-61DAFB?logo=react&logoColor=black)
 ![Stack](https://img.shields.io/badge/Tailwind_CSS_4-Recharts-06B6D4?logo=tailwindcss&logoColor=white)
+[![CI](https://github.com/guigofranca/job-market-skill-gap-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/guigofranca/job-market-skill-gap-analyzer/actions/workflows/ci.yml)
 
-![Aba Mercado do dashboard: competências mais exigidas, categorias, modalidade e estados](docs/dashboard-mercado.png)
+## Em 30 segundos
+
+**Para quem procura vaga**
+- Marque o que você sabe (ou envie o PDF do currículo, lido só no navegador) e veja as vagas
+  ordenadas pelo que falta: *prontas para aplicar*, *falta 1 competência*, todas.
+- Cada vaga diz o que fecha a lacuna (*"Falta só Power BI, pedida em 12% das vagas"*) e onde
+  aprender grátis.
+- Acompanhe suas candidaturas e prazos (com exportação para o calendário), compartilhe seu
+  perfil por link e veja quais competências estão em alta.
+
+**Destaques técnicos**
+- **ETL diário no GitHub Actions**: coleta 2 fontes com um cliente HTTP resiliente, limpa e
+  deduplica com Pandas, classifica nível e área e extrai 110 competências com regex testadas.
+  Uma checagem de sanidade impede publicar um dataset quebrado.
+- **API FastAPI somente leitura na Vercel**: agregações com Pandas, cache na CDN até a
+  meia-noite de Brasília, *rate limit*, CSP e cabeçalhos de segurança.
+- **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
+  gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
+- **Qualidade**: 322 testes no backend (pytest, 94% de cobertura) e 148 no frontend (Vitest),
+  E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
+  ruff, oxlint, CodeQL, gitleaks e Dependabot no CI.
+
+> Perguntas que o projeto responde:
+> - Quais tecnologias aparecem em mais vagas de estágio em Dados? E de júnior em Desenvolvimento?
+> - O que muda entre os requisitos de Estágio e de Júnior?
+> - Quem pede Python costuma pedir o quê junto? E o que está subindo ou caindo?
+> - Eu sei SQL e Excel: quantas vagas eu cubro e qual competência me abre mais portas?
+
+## In English
+
+Skill Gap Analyzer is a full-stack dashboard of real entry-level tech job postings in Brazil
+(internships and junior roles in data, automation, software development and IT support). A daily
+ETL pipeline (Python, Pandas, GitHub Actions) collects postings from two job boards, extracts 110
+skills with tested regex rules and publishes a dataset. A read-only FastAPI service aggregates it
+on demand, and a React + TypeScript dashboard lets job seekers rank openings by the skills they
+already have, see what they are missing and where to learn it for free, track their applications
+and follow which skills are trending. The interface is in Portuguese.
 
 ---
 
@@ -54,22 +86,29 @@ num dashboard interativo, **o que o mercado está exigindo** e **o que falta no 
   área, local, modalidade, inclusão e tecnologia).
 
 **Frontend (React + Tailwind + Recharts)**
+
+![Aba Mercado do dashboard: indicadores, competências mais exigidas, categorias, modalidade, estados, Estágio × Júnior e tendência](docs/dashboard-mercado.png)
+
 - Três abas (a aba ativa também vai para a URL, `?aba=mercado`):
   - **Vagas** (padrão), para quem procura emprego, num fluxo só:
-    1. **Seu perfil** — marque o que já sabe (ou clique nas sugestões das mais pedidas), ou
+    1. **Seu perfil** — marque o que já sabe (busca por nome, sem acento: "estatis" acha
+       *Estatística*, ou clique nas sugestões das mais pedidas), ou
        **envie o PDF do seu currículo** (também serve o PDF do LinkedIn ou um .txt): o arquivo é
        lido no próprio navegador com pdf.js (não é enviado nem guardado), as competências
-       encontradas aparecem marcadas e você desmarca o que não se aplica;
+       encontradas aparecem marcadas e você desmarca o que não se aplica. O perfil pode ser
+       **compartilhado por link** (`?perfil=python,sql`): quem abre vê a oferta e aplica com um
+       clique. No celular, o perfil fica recolhido numa linha para as vagas aparecerem logo;
     2. **Uma única lista de vagas** — sem perfil, as mais recentes; com perfil, ordenadas pelo que
        falta, com abas *Prontas para aplicar*, *Falta 1 competência* e *Todas*, o que você já tem
        (✓) e o que falta em cada anúncio, busca por título e paginação. Vagas publicadas e
        encontradas desde a sua última visita ganham a etiqueta **Nova para você** e podem ser
        listadas sozinhas. Vagas cujo anúncio você abriu mostram **vista há 3 horas** e podem ser
        ocultadas ou listadas sozinhas (guardado só neste navegador, por 30 dias). Os benefícios
-       citados no anúncio aparecem como etiquetas (vale-refeição, plano de saúde, Gympass...),
-       nunca o texto do anúncio;
+       citados no anúncio aparecem numa linha discreta (vale-refeição, plano de saúde,
+       Gympass...), nunca o texto do anúncio;
     3. **O que aprender a seguir** — cobertura média e as competências que mais aproximam você das
-       vagas (com quantas vagas cada uma deixa "prontas"), cada uma com **onde aprender grátis**
+       vagas (com quantas vagas cada uma deixa "prontas"; sem perfil, as mais pedidas nas vagas
+       filtradas), cada uma com **onde aprender grátis**
        (curso ou documentação oficial, em português quando existe); o botão
        *Já sei* adiciona ao perfil.
 
@@ -79,9 +118,12 @@ num dashboard interativo, **o que o mercado está exigindo** e **o que falta no 
     etapa (*salva*, *candidatei-me*, *em processo seletivo*, *recebi proposta*, *encerrada*), com
     prazo, anotação e aviso quando a vaga **não está mais publicada**. Vagas salvas que encerram
     em até 7 dias sem candidatura geram um lembrete no topo do painel. A vaga salva é guardada no
-    navegador (até 200), então continua na lista mesmo depois de sair das fontes.
+    navegador (até 200), então continua na lista mesmo depois de sair das fontes. A lista pode
+    ser **exportada e importada** (backup em JSON, validado item a item) e os prazos vão para o
+    calendário (Google Agenda, Outlook, celular) num arquivo **.ics**, com lembrete na véspera.
   - **Mercado**, para entender o que as vagas filtradas pedem: KPIs, ranking de competências (clique numa barra para
-    filtrar), categorias e comparação **Estágio × Júnior**.
+    filtrar), categorias, comparação **Estágio × Júnior** e **tendência** (participação das
+    competências por dia de coleta, vagas abertas por dia, e o que está em alta ou em queda).
 - Filtros sincronizados com a URL — qualquer visão pode ser compartilhada como link. Sempre
   visíveis: nível, área, estado e modalidade; em **Mais filtros**: cidade, **inclusão** (vagas que
   aceitam PcD e vagas afirmativas para PcD, mulheres, pessoas negras, indígenas, LGBTQIAPN+ e
@@ -93,6 +135,10 @@ num dashboard interativo, **o que o mercado está exigindo** e **o que falta no 
   nunca contam como "falta").
 - O cabeçalho mostra há quanto tempo os dados foram atualizados e avisa quando passam de 3 dias.
 - Tema claro/escuro, layout responsivo e visualização em **tabela** para todo gráfico (acessibilidade).
+- Títulos de vaga escritos todo em maiúsculas são exibidos em formato de título
+  ("ANALISTA DE SUPORTE JR - SP" → "Analista de Suporte Jr - SP"), mantendo siglas.
+- Quando o anúncio cita só uma competência técnica, o "100%" vem com o aviso *poucos requisitos
+  no anúncio*: compatibilidade alta com pouca evidência.
 
 ---
 
@@ -195,7 +241,7 @@ flowchart LR
 │   │   ├── sources/            # Fontes: base.py, brazil.py + gupy, solides
 │   │   ├── processing/         # text.py, cleaning.py (Pandas), classification.py, skills.py,
 │   │   │                       # sections.py (exigido × diferencial), eligibility.py (requisitos)
-│   │   ├── analytics/          # Agregações com Pandas + repositório com hot reload
+│   │   ├── analytics/          # Agregações com Pandas, tendências e repositório com hot reload
 │   │   ├── api/                # FastAPI: app, rotas, parâmetros, middlewares, erros
 │   │   ├── config.py           # Configuração via variáveis de ambiente (pydantic-settings)
 │   │   ├── http_client.py      # Retries, backoff, timeouts, limite de resposta
@@ -203,7 +249,7 @@ flowchart LR
 │   │   ├── pipeline.py         # Orquestração collect → process
 │   │   └── cli.py              # job-analyzer collect | process | run | serve
 │   ├── scripts/                # collect.ps1 e schedule-collection.ps1 (coleta diária no Windows)
-│   ├── tests/                  # 303 testes (pytest)
+│   ├── tests/                  # 322 testes (pytest)
 │   ├── data/processed/         # dataset.json (snapshot versionado)
 │   ├── .env.example
 │   ├── app.py + vercel.json    # Entrada da API como Vercel Function
@@ -412,7 +458,8 @@ São dois projetos na Vercel ligados a este repositório, um por pasta (*Root Di
 | Dashboard | `frontend` | `VITE_API_BASE_URL=https://<api>.vercel.app` |
 
 - A API vira uma Vercel Function a partir de `backend/app.py`, com o `dataset.json` dentro do
-  pacote. Cada commit da coleta diária gera um deploy novo da API com os dados do dia; o
+  pacote, rodando com *Fluid compute* (`"fluid": true`, menos *cold starts*). A raiz da API
+  (`/`) redireciona para o dashboard. Cada commit da coleta diária gera um deploy novo da API com os dados do dia; o
   `vercel.json` de cada pasta pula o build quando o commit não mexe nela, então o dashboard não é
   recompilado todo dia.
 - O *rate limit* usa o `x-real-ip`, que a Vercel sempre sobrescreve (o cliente não consegue
@@ -448,6 +495,7 @@ retornam **422**.
 | `GET /api/v1/locations` | Vagas por estado; com `state`, pelas cidades do estado (ignora o filtro de cidade) | `limit` (1–30) |
 | `GET /api/v1/workplaces` | Remoto, híbrido e presencial por área (ignora área e modalidade) | — |
 | `GET /api/v1/skills/gap` | Cobertura do perfil e recomendações | `known=python,sql` (obrigatório), `limit` |
+| `GET /api/v1/trends` | Vagas por dia e participação das competências ao longo do tempo (histórico diário; só `level` e `area`) | `days` (2–365), `limit` (1–10) |
 | `GET /api/v1/skills/patterns` | Regras de extração de competências, para ler um currículo no navegador | — |
 | `GET /api/v1/jobs` | Vagas paginadas, mais recentes primeiro | `q` (busca no título, ignora acentos e maiúsculas; "estagio" acha "Estagiário", "junior" acha "Jr"), `ids` (até 200 ids: só essas vagas, ex. as salvas ou as já vistas), `exclude` (até 200 ids: oculta essas vagas, ex. as já vistas), `limit`, `offset` |
 | `GET /api/v1/jobs/matches` | Vagas ordenadas pela compatibilidade com um perfil (menos competências faltando primeiro) | `known=python,sql` (obrigatório), `missing` (0 = prontas, 1 = falta uma), `q` (busca no título, ignora acentos e maiúsculas; "estagio" acha "Estagiário", "junior" acha "Jr"), `ids`, `exclude`, `limit`, `offset` |
@@ -464,13 +512,13 @@ curl "http://127.0.0.1:8000/api/v1/skills/gap?known=python,sql&level=estagio&are
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 303 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+pytest --cov                 # 322 testes: skills, classificação, limpeza, fontes (HTTP mockado),
                              # cliente HTTP, storage, analytics, API e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (110 testes)
+npm test                     # Vitest + Testing Library (148 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
@@ -547,6 +595,9 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
   [Deploy na Vercel](#deploy-na-vercel)).
 - **Vagas encerradas**: as que passam do prazo de inscrição somem na hora (pelo horário de
   Brasília), mesmo antes da próxima coleta; vagas retiradas pela fonte saem na coleta seguinte.
+- **Tendência**: o histórico diário começa em 14/10/2026, mas a série parte de 15/10/2026,
+  quando a Remotar saiu das fontes (antes disso, o total de vagas não é comparável). O histórico
+  é agregado por nível × área, então a tendência ignora os outros filtros.
 - Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
 
 ---
