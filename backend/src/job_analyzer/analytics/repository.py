@@ -1,7 +1,8 @@
 """Thread-safe holder of the in-memory analytics, hot-reloaded when dataset.json changes.
 
 If a new file is invalid, the last valid dataset keeps being served (fail-safe), and the error is
-reported by /health until a good file is written.
+reported by /health until a good file is written. history.json (the daily trends) is optional:
+when it is missing or invalid, everything else is still served, with empty trends.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from job_analyzer.exceptions import (
     DatasetUnavailableError,
     DataValidationError,
 )
+from job_analyzer.models import History
 from job_analyzer.storage import DataStore
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class DatasetRepository:
         self._check_interval = check_interval_seconds
         self._lock = threading.Lock()
         self._analytics: SkillAnalytics | None = None
-        self._loaded_mtime: float | None = None
+        self._loaded_version: tuple[float, float | None] | None = None
         self._last_check: float | None = None
         self.last_error: str | None = None
 
@@ -53,11 +55,12 @@ class DatasetRepository:
             if mtime is None:
                 self.last_error = "dataset.json not found: run `job-analyzer run` to generate it"
                 return
-            if mtime == self._loaded_mtime:
+            version = (mtime, self._store.history_mtime())
+            if version == self._loaded_version:
                 return
             try:
                 dataset = self._store.load_dataset()
-                self._analytics = SkillAnalytics(dataset)
+                self._analytics = SkillAnalytics(dataset, history=self._load_history())
                 self.last_error = None
                 logger.info("Dataset loaded: %d jobs", len(dataset.jobs))
             except (DataValidationError, DatasetNotFoundError) as exc:
@@ -65,4 +68,11 @@ class DatasetRepository:
                 logger.error("Could not load dataset: %s", exc)
             finally:
                 # Remember the version we tried, so an invalid file is not re-parsed on every call.
-                self._loaded_mtime = mtime
+                self._loaded_version = version
+
+    def _load_history(self) -> History:
+        try:
+            return self._store.load_history()
+        except DataValidationError as exc:
+            logger.error("Could not load history, serving empty trends: %s", exc)
+            return History()
