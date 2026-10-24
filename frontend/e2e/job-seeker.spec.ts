@@ -40,6 +40,9 @@ test('without a profile it lists the newest jobs, linking to the original postin
 test('a profile ranks the jobs and says what is missing and where to learn it', async ({
   page,
 }) => {
+  // Phones fold the profile behind one button, so the first screen shows jobs.
+  const profile = page.getByRole('button', { name: 'Marque o que você já sabe' })
+  if (await profile.isVisible()) await profile.click()
   // Quick start: the most requested skills are one click away.
   await page
     .getByRole('button', { name: /^Adicionar / })
