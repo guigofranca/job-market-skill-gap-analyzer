@@ -100,6 +100,13 @@ describe('jobTags', () => {
     ])
   })
 
+  it('does not repeat "Estágio" as the contract of an internship', () => {
+    const intern = { ...base, level: 'estagio', contracts: ['estagio'] } as Job
+    expect(jobTags(intern)).toEqual([])
+    const junior = { ...base, level: 'junior', contracts: ['estagio', 'clt'] } as Job
+    expect(jobTags(junior).map((tag) => tag.label)).toEqual(['Estágio', 'CLT'])
+  })
+
   it('does not repeat "Aceita PcD" on a PcD affirmative job', () => {
     const job = { ...base, affirmative: ['pcd'], accepts_pcd: true } as Job
     expect(jobTags(job).map((tag) => tag.label)).toEqual(['Afirmativa: PcD'])
