@@ -38,7 +38,7 @@ def _parse_sources(value: str) -> list[SourceName]:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="job-analyzer", description="Job Market Skill Gap Analyzer - ETL e API."
+        prog="job-analyzer", description="Skill Gap Analyzer - ETL e API."
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
