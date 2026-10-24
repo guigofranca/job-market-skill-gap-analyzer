@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "job-market-skill-gap-analyzer"
 version = "0.1.0"
-description = "ETL + API que mede as competências mais exigidas em vagas de Estágio e Júnior (Dados, Automação e Desenvolvimento)."
+description = "ETL + API que mede as competências mais exigidas em vagas de Estágio e Júnior (Dados, Automação, Desenvolvimento e Infraestrutura)."
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
