@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
+  "fluid": true,
+  "redirects": [{ "source": "/", "destination": "https://seu-empregobr.vercel.app/" }],
   "functions": {
     "app.py": {
       "excludeFiles": "{tests/**,scripts/**,data/raw/**,logs/**,Dockerfile}"
