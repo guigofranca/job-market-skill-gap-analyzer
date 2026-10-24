@@ -32,6 +32,8 @@ export function jobTags(
   if (salary) tags.push({ key: 'salary', label: `${salary}/mês` })
   if (job.workplace) tags.push({ key: 'workplace', label: WORKPLACE_LABELS[job.workplace] })
   for (const contract of job.contracts) {
+    // An internship's contract is always "Estágio": the level next to the title already says it.
+    if (contract === 'estagio' && job.level === 'estagio') continue
     tags.push({ key: `contract-${contract}`, label: CONTRACT_LABELS[contract] })
   }
   // Who can apply: weekly hours, English, degree, semester, graduation date.
