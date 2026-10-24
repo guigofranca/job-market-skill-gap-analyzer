@@ -22,11 +22,12 @@ export function useSummary(filters: Filters) {
   })
 }
 
-export function useTopSkills(filters: Filters, limit = 15) {
+export function useTopSkills(filters: Filters, limit = 15, enabled = true) {
   return useQuery({
     queryKey: ['top-skills', filters, limit],
     queryFn: ({ signal }) => api.topSkills(filters, limit, signal),
     placeholderData: keepPreviousData,
+    enabled,
   })
 }
 
