@@ -36,6 +36,7 @@ function profile(known: string[]): KnownSkills {
     add: vi.fn<(slug: string) => void>(),
     remove: vi.fn<(slug: string) => void>(),
     clear: vi.fn<() => void>(),
+    replace: vi.fn<(slugs: readonly string[]) => void>(),
     max: 40,
   }
 }
@@ -133,5 +134,31 @@ describe('ForYouSection', () => {
     expect(current.remove).toHaveBeenCalledWith('sql')
     // The skill already in the profile is not suggested again.
     expect(screen.queryByRole('button', { name: 'Adicionar SQL' })).not.toBeInTheDocument()
+  })
+
+  it('offers the profile of a shared link, and applies it only on a click', () => {
+    window.history.replaceState(null, '', '/?level=estagio&perfil=python,excel')
+    const current = profile(['sql'])
+    render(<ForYouSection filters={{}} meta={meta} profile={current} known={['sql']} />)
+
+    // The address goes back to the filters alone.
+    expect(window.location.search).toBe('?level=estagio')
+    expect(screen.getByText(/Este link traz um perfil/)).toHaveTextContent('Python, Excel')
+    expect(current.replace).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Usar este (substitui o seu)' }))
+    expect(current.replace).toHaveBeenCalledWith(['python', 'excel'])
+    expect(screen.queryByText(/Este link traz um perfil/)).not.toBeInTheDocument()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('copies a link to the profile', async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue()
+    Object.assign(navigator, { clipboard: { writeText } })
+    window.history.replaceState(null, '', '/?area=dados')
+    render(<ForYouSection filters={{}} meta={meta} profile={profile(['sql'])} known={['sql']} />)
+    fireEvent.click(screen.getByRole('button', { name: /Compartilhar perfil/ }))
+    expect(await screen.findByText('Link copiado!')).toBeInTheDocument()
+    expect(writeText).toHaveBeenCalledWith('http://localhost:3000/?area=dados&perfil=sql')
+    window.history.replaceState(null, '', '/')
   })
 })
