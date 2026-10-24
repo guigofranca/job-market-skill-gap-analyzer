@@ -36,6 +36,9 @@ export function useKnownSkills() {
     setKnown((current) => current.filter((item) => item !== slug))
   }, [])
   const clear = useCallback(() => setKnown([]), [])
+  const replace = useCallback((slugs: readonly string[]) => {
+    setKnown([...new Set(slugs)].slice(0, MAX_KNOWN))
+  }, [])
 
-  return { known, add, remove, clear, max: MAX_KNOWN }
+  return { known, add, remove, clear, replace, max: MAX_KNOWN }
 }
