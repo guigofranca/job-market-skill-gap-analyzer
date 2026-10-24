@@ -12,6 +12,8 @@ import { LearnLink } from './LearnLink'
 const MAX_PLAIN_SKILLS = 6
 const MAX_NICE_SKILLS = 4
 const MAX_BENEFITS = 6
+/** A match on this many detected skills or fewer says little about the job. */
+const FEW_SKILLS = 1
 
 /**
  * One job posting. With match data (the visitor has a skills profile) it also shows what they
@@ -38,6 +40,7 @@ export function JobRow({
   const viewedAt = viewed?.viewed[job.id]
   const href = toSafeHref(job.url)
   const match = 'coverage' in job ? job : undefined
+  const detected = match ? match.matched.length + match.missing.length : 0
   const details = [
     job.company,
     job.location,
