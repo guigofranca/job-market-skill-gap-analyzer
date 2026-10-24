@@ -1,5 +1,6 @@
 import { Moon, Sun } from 'lucide-react'
 import type { Meta } from '../../api/schemas'
+import { AUTHOR } from '../../config/author'
 import type { Theme } from '../../hooks/useTheme'
 import {
   formatDate,
@@ -8,6 +9,7 @@ import {
   formatRelativeTime,
   isStale,
 } from '../../lib/format'
+import { GitHubIcon, LinkedInIcon } from './BrandIcons'
 
 /** The favicon's bar chart, in the brand color. */
 function LogoMark() {
@@ -20,6 +22,9 @@ function LogoMark() {
     </svg>
   )
 }
+
+const HEADER_BUTTON =
+  'border-header-line text-header-ink hover:border-header-eyebrow focus-visible:outline-header-eyebrow inline-flex items-center rounded-lg border p-2 transition-colors'
 
 export function Header({
   meta,
@@ -38,7 +43,7 @@ export function Header({
         <div className="min-w-0">
           <p className="text-header-eyebrow flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
             <LogoMark />
-            Job Market Skill Gap Analyzer
+            Skill Gap Analyzer
           </p>
           <h1 className="text-header-ink mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
             O que o mercado pede em vagas de Estágio e Júnior
@@ -79,19 +84,32 @@ export function Header({
             )}
           </p>
         </div>
-        <button
-          type="button"
-          className="border-header-line text-header-ink hover:border-header-eyebrow focus-visible:outline-header-eyebrow inline-flex shrink-0 items-center rounded-lg border p-2 transition-colors"
-          onClick={onToggleTheme}
-          aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
-          title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-        >
-          {theme === 'dark' ? (
-            <Sun aria-hidden className="size-4" />
-          ) : (
-            <Moon aria-hidden className="size-4" />
-          )}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href={AUTHOR.repository}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${HEADER_BUTTON} gap-1.5 text-sm font-medium`}
+            title="Código-fonte no GitHub"
+          >
+            <GitHubIcon />
+            <span className="sr-only sm:not-sr-only">Código</span>
+            <span className="sr-only"> no GitHub (abre em nova aba)</span>
+          </a>
+          <button
+            type="button"
+            className={HEADER_BUTTON}
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+            title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          >
+            {theme === 'dark' ? (
+              <Sun aria-hidden className="size-4" />
+            ) : (
+              <Moon aria-hidden className="size-4" />
+            )}
+          </button>
+        </div>
       </div>
     </header>
   )
@@ -101,6 +119,39 @@ export function Footer() {
   return (
     <footer className="border-line text-muted mt-8 border-t">
       <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-xs sm:px-6">
+        <p className="text-ink-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span>
+            Feito por{' '}
+            <a
+              className="text-ink font-medium underline-offset-2 hover:underline"
+              href={AUTHOR.github}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {AUTHOR.handle}
+            </a>
+          </span>
+          <a
+            className="hover:text-ink inline-flex items-center gap-1 underline-offset-2 hover:underline"
+            href={AUTHOR.repository}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GitHubIcon className="size-3.5" />
+            Código-fonte
+          </a>
+          {AUTHOR.linkedin && (
+            <a
+              className="hover:text-ink inline-flex items-center gap-1 underline-offset-2 hover:underline"
+              href={AUTHOR.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <LinkedInIcon className="size-3.5" />
+              LinkedIn
+            </a>
+          )}
+        </p>
         <p>
           Fontes: vagas públicas publicadas no Brasil pela{' '}
           <a
