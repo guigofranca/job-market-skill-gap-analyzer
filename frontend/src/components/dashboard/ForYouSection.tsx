@@ -1,10 +1,12 @@
-import { Check, ChevronDown, Plus, Sparkles, Target, X } from 'lucide-react'
+import { Check, ChevronDown, Link2, Plus, Sparkles, Target, X } from 'lucide-react'
 import { useId, useState } from 'react'
 import type { Filters } from '../../api/endpoints'
 import type { Gap, Meta } from '../../api/schemas'
 import { useGap, useTopSkills } from '../../hooks/useDashboardData'
 import type { KnownSkills } from '../../hooks/useKnownSkills'
+import { useSharedProfile } from '../../hooks/useSharedProfile'
 import { formatNumber, formatPercent } from '../../lib/format'
+import { profileLink } from '../../lib/profileLink'
 import type { SeenFilter } from '../../lib/viewed'
 import { CATEGORY_LABELS } from '../../lib/labels'
 import { EmptyState, ErrorState, LoadingState } from '../feedback/States'
@@ -47,11 +49,10 @@ export function ForYouSection({
   // Phones: the profile folds behind one line, so the first screen shows jobs, not a form.
   const [mobileOpen, setMobileOpen] = useState(false)
   const nameOf = (slug: string) => meta.skills.find((skill) => skill.slug === slug)?.name ?? slug
-  const more = known.length - SUMMARY_NAMES
-  const summary =
-    known.length === 0
-      ? 'Marque o que você já sabe'
-      : `${known.slice(0, SUMMARY_NAMES).map(nameOf).join(', ')}${more > 0 ? ` e mais ${formatNumber(more)}` : ''}`
+  const summary = known.length === 0 ? 'Marque o que você já sabe' : listNames(known, nameOf)
+  const link = useSharedProfile(profile)
+  // Skills of the link this dataset knows (the others are ignored, as in the stored profile).
+  const shared = link.shared?.filter((slug) => meta.skills.some((skill) => skill.slug === slug))
 
   return (
     <section aria-labelledby={headingId} className="card flex flex-col gap-5 p-4 sm:p-5">
@@ -73,6 +74,19 @@ export function ForYouSection({
             className={`size-4 shrink-0 transition-transform ${mobileOpen ? 'rotate-180' : ''}`}
           />
         </button>
+        {shared && shared.length > 0 && (
+          <div className="border-accent bg-accent-soft text-ink flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2 text-sm">
+            <span>
+              Este link traz um perfil: <strong>{listNames(shared, nameOf)}</strong>.
+            </span>
+            <button type="button" className="btn px-2 py-1 text-xs" onClick={link.accept}>
+              {known.length === 0 ? 'Ver as vagas para este perfil' : 'Usar este (substitui o seu)'}
+            </button>
+            <button type="button" className="btn px-2 py-1 text-xs" onClick={link.dismiss}>
+              {known.length === 0 ? 'Agora não' : 'Manter o meu'}
+            </button>
+          </div>
+        )}
       </header>
 
       <div
@@ -131,9 +145,12 @@ function SkillPicker({
           disabled={full}
         />
         {known.length > 0 && (
-          <button type="button" className="btn" onClick={clear}>
-            Limpar
-          </button>
+          <>
+            <ShareProfile known={known} />
+            <button type="button" className="btn" onClick={clear}>
+              Limpar
+            </button>
+          </>
         )}
       </div>
 
@@ -173,6 +190,57 @@ function SkillPicker({
         </div>
       )}
     </div>
+  )
+}
+
+/** "SQL, Python, Excel e mais 2". */
+function listNames(slugs: readonly string[], nameOf: (slug: string) => string): string {
+  const more = slugs.length - SUMMARY_NAMES
+  return `${slugs.slice(0, SUMMARY_NAMES).map(nameOf).join(', ')}${more > 0 ? ` e mais ${formatNumber(more)}` : ''}`
+}
+
+/**
+ * Copies a link that opens the dashboard with this profile (and the current filters): to ask a
+ * mentor, or to show "what a SQL + Python intern is missing". Phones get the share sheet.
+ */
+function ShareProfile({ known }: { known: readonly string[] }) {
+  const [status, setStatus] = useState<'idle' | 'copied' | 'manual'>('idle')
+  const [url, setUrl] = useState('')
+
+  async function share() {
+    const link = profileLink(window.location.href, known)
+    setUrl(link)
+    try {
+      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
+        await navigator.share({ title: 'Meu perfil no Skill Gap Analyzer', url: link })
+        return
+      }
+      await navigator.clipboard.writeText(link)
+      setStatus('copied')
+      setTimeout(() => setStatus('idle'), 3000)
+    } catch (error) {
+      // The share sheet was closed: nothing to do. No clipboard access: show the link to copy.
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setStatus('manual')
+    }
+  }
+
+  return (
+    <>
+      <button type="button" className="btn" onClick={() => void share()}>
+        <Link2 aria-hidden className="size-4" />
+        Compartilhar perfil
+      </button>
+      {status === 'copied' && <output className="text-ink-2 text-xs">Link copiado!</output>}
+      {status === 'manual' && (
+        <input
+          readOnly
+          value={url}
+          aria-label="Link do seu perfil (copie)"
+          className="select w-full sm:w-80"
+          onFocus={(event) => event.target.select()}
+        />
+      )}
+    </>
   )
 }
 

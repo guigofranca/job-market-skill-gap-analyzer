@@ -20,6 +20,7 @@ from job_analyzer.analytics.schemas import (
     SkillPatternsResponse,
     SummaryResponse,
     TopSkillsResponse,
+    TrendsResponse,
     WorkplacesResponse,
 )
 from job_analyzer.api.params import (
@@ -30,6 +31,7 @@ from job_analyzer.api.params import (
     LocationsParams,
     MatchParams,
     TopSkillsParams,
+    TrendsParams,
 )
 from job_analyzer.processing.skills import TAXONOMY, browser_patterns
 
@@ -126,6 +128,17 @@ def workplaces(
     analytics: Analytics, params: Annotated[FilterParams, Query()]
 ) -> WorkplacesResponse:
     return analytics.workplaces(params.to_filters())
+
+
+@router.get(
+    "/trends",
+    response_model=TrendsResponse,
+    summary="Vagas por dia e participação das competências ao longo do tempo (só nível e área)",
+)
+def trends(analytics: Analytics, params: Annotated[TrendsParams, Query()]) -> TrendsResponse:
+    return analytics.trends(
+        level=params.level, area=params.area, days=params.days, limit=params.limit
+    )
 
 
 @router.get("/skills/gap", response_model=GapResponse, summary="Análise de gap para um perfil")

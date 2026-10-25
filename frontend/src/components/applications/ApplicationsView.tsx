@@ -1,5 +1,13 @@
-import { AlarmClock, ClipboardList, ExternalLink, Trash2 } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import {
+  AlarmClock,
+  CalendarPlus,
+  ClipboardList,
+  Download,
+  ExternalLink,
+  Trash2,
+  Upload,
+} from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useJobsByIds } from '../../hooks/useDashboardData'
 import type { Applications } from '../../hooks/useApplications'
 import {
@@ -12,6 +20,14 @@ import {
   STATUS_SHORT,
   type Application,
 } from '../../lib/applications'
+import {
+  exportApplications,
+  ImportError,
+  MAX_IMPORT_BYTES,
+  parseApplicationsFile,
+} from '../../lib/applicationsFile'
+import { deadlinesCalendar, withDeadline } from '../../lib/calendar'
+import { downloadFile } from '../../lib/download'
 import { formatDate, formatDateTime, formatDeadline, formatNumber } from '../../lib/format'
 import { AREA_LABELS, LEVEL_LABELS, SOURCE_LABELS } from '../../lib/labels'
 import { toSafeHref } from '../../lib/safeUrl'
@@ -54,6 +70,7 @@ export function ApplicationsView({
           Acompanhe as vagas que você salvou: em que etapa está cada uma, prazos e anotações. Fica
           salvo só neste navegador.
         </p>
+        <BackupTools applications={applications} />
         {items.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Resumo por etapa">
             {STATUSES.map((status) => {
@@ -104,6 +121,93 @@ export function ApplicationsView({
         </>
       )}
     </section>
+  )
+}
+
+/**
+ * The list lives in this browser: a file backs it up or moves it to another device, and the
+ * deadlines go to the visitor's calendar. Files are made and read here, never uploaded.
+ */
+function BackupTools({ applications }: { applications: Applications }) {
+  const input = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null)
+  const { applications: items, importItems } = applications
+  const dated = withDeadline(items).length
+
+  async function onFile(file: File) {
+    try {
+      if (file.size > MAX_IMPORT_BYTES) throw new ImportError('O arquivo passa de 1 MB.')
+      const { added, updated } = importItems(parseApplicationsFile(await file.text()))
+      setStatus({
+        text:
+          added + updated === 0
+            ? 'Nada novo: todas as vagas do arquivo já estão na lista.'
+            : `Importado: ${formatNumber(added)} vaga(s) nova(s), ${formatNumber(updated)} atualizada(s).`,
+        error: false,
+      })
+    } catch (error) {
+      setStatus({
+        text: error instanceof ImportError ? error.message : 'Não foi possível ler o arquivo.',
+        error: true,
+      })
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        {items.length > 0 && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              downloadFile(
+                `candidaturas-${new Date().toISOString().slice(0, 10)}.json`,
+                'application/json',
+                exportApplications(items),
+              )
+            }
+          >
+            <Download aria-hidden className="size-4" />
+            Exportar backup
+          </button>
+        )}
+        <button type="button" className="btn" onClick={() => input.current?.click()}>
+          <Upload aria-hidden className="size-4" />
+          Importar backup
+        </button>
+        <input
+          ref={input}
+          type="file"
+          accept="application/json,.json"
+          className="sr-only"
+          tabIndex={-1}
+          aria-label="Arquivo de backup das candidaturas"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = '' // the same file can be picked again
+            if (file) void onFile(file)
+          }}
+        />
+        {dated > 0 && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              downloadFile('prazos-candidaturas.ics', 'text/calendar', deadlinesCalendar(items))
+            }
+          >
+            <CalendarPlus aria-hidden className="size-4" />
+            Prazos no calendário ({formatNumber(dated)})
+          </button>
+        )}
+      </div>
+      {status && (
+        <output className={`text-xs ${status.error ? 'text-danger' : 'text-ink-2'}`}>
+          {status.text}
+        </output>
+      )}
+    </div>
   )
 }
 

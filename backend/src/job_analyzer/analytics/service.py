@@ -39,9 +39,11 @@ from job_analyzer.analytics.schemas import (
     SkillStat,
     SummaryResponse,
     TopSkillsResponse,
+    TrendsResponse,
     WorkplacesResponse,
     WorkplaceStat,
 )
+from job_analyzer.analytics.trends import skill_trends
 from job_analyzer.brazil import BRAZILIAN_STATES, brazil_today
 from job_analyzer.models import (
     Affirmative,
@@ -50,6 +52,7 @@ from job_analyzer.models import (
     Dataset,
     EnglishLevel,
     EnglishNeed,
+    History,
     Level,
     Workplace,
 )
@@ -216,8 +219,15 @@ def _english_rank(level: EnglishLevel) -> int:
 
 
 class SkillAnalytics:
-    def __init__(self, dataset: Dataset, *, today: Callable[[], date] = brazil_today) -> None:
+    def __init__(
+        self,
+        dataset: Dataset,
+        *,
+        history: History | None = None,
+        today: Callable[[], date] = brazil_today,
+    ) -> None:
         self.metadata = dataset.metadata
+        self.history = history or History()
         self._today = today
         records = [
             {
@@ -592,6 +602,12 @@ class SkillAnalytics:
             offset=offset,
             items=items,
         )
+
+    def trends(
+        self, *, level: Level | None, area: Area | None, days: int, limit: int
+    ) -> TrendsResponse:
+        """Open jobs per day and the share of the most requested skills, from history.json."""
+        return skill_trends(self.history, level=level, area=area, days=days, limit=limit)
 
     def _by_demand(self, skills: frozenset[str]) -> list[str]:
         return sorted(skills, key=lambda slug: (-self._demand.get(slug, 0), slug))

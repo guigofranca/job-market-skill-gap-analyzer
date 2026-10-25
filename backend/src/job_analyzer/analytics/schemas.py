@@ -155,6 +155,31 @@ class GapResponse(_Model):
     recommendations: list[GapRecommendation]
 
 
+class TrendDay(_Model):
+    day: date
+    jobs: int = Field(ge=0, description="Open jobs of the level/area filter that day")
+
+
+class TrendPoint(_Model):
+    day: date
+    count: int = Field(ge=0)
+    share: Share = Field(ge=0, le=1)
+
+
+class SkillTrend(SkillRef):
+    points: list[TrendPoint]
+    change: float = Field(
+        ge=-1, le=1, description="Share on the last day minus the share on the first day"
+    )
+
+
+class TrendsResponse(_Model):
+    days: list[TrendDay]
+    skills: list[SkillTrend] = Field(description="Most requested on the last day")
+    rising: list[SkillTrend]
+    falling: list[SkillTrend]
+
+
 class JobItem(_Model):
     id: str
     source: SourceName

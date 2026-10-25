@@ -1,8 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Job } from '../../api/schemas'
 import { ApplicationsContext, useApplicationsState } from '../../hooks/useApplications'
 import { useJobsByIds } from '../../hooks/useDashboardData'
+import { exportApplications } from '../../lib/applicationsFile'
+import type { Application } from '../../lib/applications'
 import { ApplicationsView } from './ApplicationsView'
 import { SaveJobButton } from './SaveJobButton'
 
@@ -64,6 +66,40 @@ describe('Minhas candidaturas', () => {
     expect(stored).toMatchObject([{ status: 'candidatei', note: 'Entrevista dia 20' }])
 
     fireEvent.click(screen.getByRole('button', { name: 'Remover Estágio em Dados da lista' }))
+    expect(screen.getByText('Nenhuma vaga salva ainda')).toBeInTheDocument()
+  })
+
+  it('restores a backup file and offers the deadlines as a calendar', async () => {
+    render(<Harness />)
+    const backup: Application = {
+      job: { ...job, source: 'gupy', deadline: '2099-12-31' } as Application['job'],
+      status: 'processo',
+      note: 'Segunda fase',
+      savedAt: '2026-10-01T12:00:00.000Z',
+      updatedAt: '2026-10-02T12:00:00.000Z',
+    }
+    const file = new File([exportApplications([backup])], 'candidaturas.json', {
+      type: 'application/json',
+    })
+    fireEvent.change(screen.getByLabelText('Arquivo de backup das candidaturas'), {
+      target: { files: [file] },
+    })
+
+    expect(await screen.findByText(/Importado: 1 vaga\(s\) nova\(s\)/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Em processo' })).toBeInTheDocument(),
+    )
+    expect(screen.getByRole('button', { name: /Exportar backup/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Prazos no calendário (1)' })).toBeInTheDocument()
+  })
+
+  it('explains why a file cannot be imported', async () => {
+    render(<Harness />)
+    const file = new File(['{"hello": 1}'], 'outro.json', { type: 'application/json' })
+    fireEvent.change(screen.getByLabelText('Arquivo de backup das candidaturas'), {
+      target: { files: [file] },
+    })
+    expect(await screen.findByText(/não é um backup exportado por este painel/)).toBeInTheDocument()
     expect(screen.getByText('Nenhuma vaga salva ainda')).toBeInTheDocument()
   })
 })

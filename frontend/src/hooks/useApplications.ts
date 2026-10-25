@@ -8,6 +8,7 @@ import {
   type Application,
   type Status,
 } from '../lib/applications'
+import { mergeApplications } from '../lib/applicationsFile'
 import { readStorage, writeStorage } from '../lib/storage'
 
 const STORAGE_KEY = 'skill-gap:applications'
@@ -83,9 +84,29 @@ export function useApplicationsState() {
     })
   }, [])
 
+  /** Entries from a backup file join the list (see mergeApplications); returns what changed. */
+  const importItems = useCallback(
+    (items: readonly Application[]) => {
+      const result = mergeApplications(applications, items)
+      setApplications(result.applications)
+      return { added: result.added, updated: result.updated }
+    },
+    [applications],
+  )
+
   const ids = useMemo(() => new Set(applications.map((item) => item.job.id)), [applications])
 
-  return { applications, ids, save, remove, setStatus, setNote, refresh, max: MAX_APPLICATIONS }
+  return {
+    applications,
+    ids,
+    save,
+    remove,
+    setStatus,
+    setNote,
+    refresh,
+    importItems,
+    max: MAX_APPLICATIONS,
+  }
 }
 
 export type Applications = ReturnType<typeof useApplicationsState>

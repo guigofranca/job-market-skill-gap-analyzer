@@ -8,6 +8,7 @@ import {
   LevelComparisonSection,
   LocationsSection,
   TopSkillsSection,
+  TrendsSection,
   WorkplaceSection,
 } from './Sections'
 
@@ -78,6 +79,10 @@ export function MarketView({
 
       <Guarded title="Estágio × Júnior" resetKeys={resetKeys}>
         <LevelComparisonSection filters={filters} />
+      </Guarded>
+
+      <Guarded title="Tendência" resetKeys={resetKeys}>
+        <TrendsSection filters={filters} />
       </Guarded>
     </>
   )
