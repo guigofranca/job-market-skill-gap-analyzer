@@ -34,7 +34,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
 - **Qualidade**: 322 testes no backend (pytest, 94% de cobertura) e 148 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
-  ruff, oxlint, CodeQL, gitleaks e Dependabot no CI.
+  ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
 > Perguntas que o projeto responde:
 > - Quais tecnologias aparecem em mais vagas de estágio em Dados? E de júnior em Desenvolvimento?
@@ -268,7 +268,7 @@ flowchart LR
 │   ├── vercel.json             # Cabeçalhos de segurança e cache na Vercel
 │   └── vite.config.ts          # Plugins que injetam a Content-Security-Policy e a prévia de link
 ├── docs/                       # Captura de tela do README
-├── .github/                    # CI (lint, tipos, testes, build, auditoria, gitleaks), coleta diária + Dependabot
+├── .github/                    # CI (lint, tipos, testes, build, auditoria, gitleaks) e coleta diária
 ├── .pre-commit-config.yaml
 └── docker-compose.yml
 ```
@@ -366,7 +366,7 @@ Processamento
 | **Tratamento de erros (frontend)** | `ErrorBoundary` na raiz (com tela específica para configuração inválida) **e por seção**; estados de carregando / erro com "tentar novamente" / vazio em cada widget; *retry* automático só para falhas transitórias; dados anteriores mantidos (esmaecidos) durante recarregamentos. |
 | **Integridade de dados** | Escrita atômica (arquivo temporário + `os.replace`), proteção contra *path traversal*, limites de tamanho de resposta HTTP e de arquivo. |
 | **Contêineres** | Usuário não-root, nginx *unprivileged*, sistema de arquivos somente leitura, `no-new-privileges`, `cap_drop: ALL`, portas ligadas só em `127.0.0.1`. |
-| **Dependências** | Versões com faixas no `pyproject.toml`/`package.json` + lockfile npm; `pip-audit` e `npm audit` no CI; Dependabot semanal. |
+| **Dependências** | Versões com faixas no `pyproject.toml`/`package.json` + lockfile npm; `pip-audit` e `npm audit` no CI e alertas de vulnerabilidade do GitHub. |
 | **Código** | Tipagem estrita (`mypy --strict`, TypeScript `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), `ruff` (inclui regras de segurança `bandit`), `oxlint` (inclui `jsx-a11y`), Prettier, EditorConfig. |
 
 ---
