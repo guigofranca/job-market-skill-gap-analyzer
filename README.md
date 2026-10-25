@@ -460,8 +460,11 @@ São dois projetos na Vercel ligados a este repositório, um por pasta (*Root Di
 - A API vira uma Vercel Function a partir de `backend/app.py`, com o `dataset.json` dentro do
   pacote, rodando com *Fluid compute* (`"fluid": true`, menos *cold starts*). A raiz da API
   (`/`) redireciona para o dashboard. Cada commit da coleta diária gera um deploy novo da API com os dados do dia; o
-  `vercel.json` de cada pasta pula o build quando o commit não mexe nela, então o dashboard não é
-  recompilado todo dia.
+  `vercel.json` de cada pasta pula o build quando nada mudou na pasta desde o último deploy daquele
+  projeto (`VERCEL_GIT_PREVIOUS_SHA`), então o dashboard não é recompilado todo dia. Sem deploy
+  anterior (branch nova) ou sem como comparar, o build roda.
+- As *previews* de PR do dashboard não carregam dados: a API só aceita a origem de produção
+  (CORS) e a Vercel pede login nelas.
 - O *rate limit* usa o `x-real-ip`, que a Vercel sempre sobrescreve (o cliente não consegue
   forjar). Ele continua em memória, então conta por instância da função: requisições paralelas
   caem em instâncias diferentes e passam do limite. Por isso o limite real fica numa regra do
