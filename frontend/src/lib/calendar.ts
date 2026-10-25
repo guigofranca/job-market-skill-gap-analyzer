@@ -64,7 +64,7 @@ export function deadlinesCalendar(applications: readonly Application[], now = ne
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Skill Gap Analyzer//Minhas candidaturas//PT-BR',
+    'PRODID:-//Empregos e Tendencias//Minhas candidaturas//PT-BR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
   ]

@@ -58,7 +58,7 @@ function socialPreview(siteUrl: string | undefined): Plugin {
         { property: 'og:image:height', content: '630' },
         {
           property: 'og:image:alt',
-          content: 'Skill Gap Analyzer: competências mais pedidas em vagas de Estágio e Júnior',
+          content: 'Empregos e Tendências: competências mais pedidas em vagas de Estágio e Júnior',
         },
       ]
     : []

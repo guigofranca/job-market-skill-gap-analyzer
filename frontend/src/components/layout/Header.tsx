@@ -43,7 +43,7 @@ export function Header({
         <div className="min-w-0">
           <p className="text-header-eyebrow flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
             <LogoMark />
-            Skill Gap Analyzer
+            Empregos e Tendências
           </p>
           <h1 className="text-header-ink mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
             O que o mercado pede em vagas de Estágio e Júnior
