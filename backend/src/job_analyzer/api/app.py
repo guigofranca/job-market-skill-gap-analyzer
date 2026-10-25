@@ -45,10 +45,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     docs = settings.docs_enabled
     app = FastAPI(
-        title="Job Market Skill Gap Analyzer API",
+        title="Skill Gap Analyzer API",
         version=__version__,
         description="Competências mais exigidas em vagas de Estágio e Júnior "
-        "(Dados, Automação e Desenvolvimento), a partir de vagas reais.",
+        "(Dados, Automação, Desenvolvimento e Infraestrutura), a partir de vagas reais.",
         docs_url="/docs" if docs else None,
         redoc_url=None,
         openapi_url="/openapi.json" if docs else None,

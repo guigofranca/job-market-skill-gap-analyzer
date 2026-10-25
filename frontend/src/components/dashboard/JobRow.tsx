@@ -5,6 +5,7 @@ import { formatDate, formatNumber, formatPercent } from '../../lib/format'
 import { AREA_LABELS, BENEFIT_LABELS, LEVEL_LABELS, SOURCE_LABELS } from '../../lib/labels'
 import { SaveJobButton } from '../applications/SaveJobButton'
 import { toSafeHref } from '../../lib/safeUrl'
+import { displayTitle } from '../../lib/titles'
 import { formatViewed } from '../../lib/viewed'
 import { JobTags } from './JobTags'
 import { LearnLink } from './LearnLink'
@@ -12,6 +13,8 @@ import { LearnLink } from './LearnLink'
 const MAX_PLAIN_SKILLS = 6
 const MAX_NICE_SKILLS = 4
 const MAX_BENEFITS = 6
+/** A match on this many detected skills or fewer says little about the job. */
+const FEW_SKILLS = 1
 
 /**
  * One job posting. With match data (the visitor has a skills profile) it also shows what they
@@ -38,6 +41,7 @@ export function JobRow({
   const viewedAt = viewed?.viewed[job.id]
   const href = toSafeHref(job.url)
   const match = 'coverage' in job ? job : undefined
+  const detected = match ? match.matched.length + match.missing.length : 0
   const details = [
     job.company,
     job.location,
@@ -65,12 +69,12 @@ export function JobRow({
               onClick={() => viewed?.markViewed(job.id)}
               onAuxClick={() => viewed?.markViewed(job.id)}
             >
-              <span>{job.title}</span>
+              <span>{displayTitle(job.title)}</span>
               <ExternalLink aria-hidden className="mt-0.5 size-3.5 shrink-0 opacity-60" />
               <span className="sr-only">(abre em nova aba)</span>
             </a>
           ) : (
-            <span className="text-ink font-medium">{job.title}</span>
+            <span className="text-ink font-medium">{displayTitle(job.title)}</span>
           )}
           <SaveJobButton job={job} />
         </div>
@@ -157,7 +161,7 @@ export function JobRow({
       </div>
 
       {match && (
-        <div className="flex shrink-0 items-center gap-3 sm:w-36 sm:flex-col sm:items-end sm:gap-1">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 sm:w-36 sm:flex-col sm:flex-nowrap sm:items-end sm:gap-1">
           <span className="text-ink text-lg leading-none font-semibold tabular-nums">
             {formatPercent(match.coverage)}
             <span className="sr-only"> de compatibilidade</span>
@@ -169,9 +173,14 @@ export function JobRow({
             />
           </div>
           <span className="text-muted text-xs">
-            você tem {formatNumber(match.matched.length)} de{' '}
-            {formatNumber(match.matched.length + match.missing.length)}
+            você tem {formatNumber(match.matched.length)} de {formatNumber(detected)}
           </span>
+          {detected <= FEW_SKILLS && (
+            // 1 of 1 reads as a perfect match, but the posting may just list little.
+            <span className="text-ink-2 text-xs sm:text-right">
+              poucos requisitos no anúncio: confira antes
+            </span>
+          )}
         </div>
       )}
     </li>

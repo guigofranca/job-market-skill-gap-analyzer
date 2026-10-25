@@ -7,7 +7,9 @@ name: Collect jobs
 
 on:
   schedule:
-    - cron: "17 9 * * *" # 06:17 in Brasília; off the hour, when GitHub's scheduler is less busy
+    # 03:17 in Brasília, off the hour: GitHub often starts scheduled runs hours late, so the data
+    # still lands before the morning.
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:

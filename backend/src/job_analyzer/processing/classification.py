@@ -105,6 +105,8 @@ AREA_EXCLUSIONS = re.compile(
     r"|\bpre[\s-]?vendas\b|\baccount (?:manager|executive)\b"
     # Industrial automation (PLCs, mechatronics) is engineering, not software automation.
     r"|\bmecatronica\b|\bautomacao industrial\b|\bcontrole e automacao\b|\beletrotecnic\w*"
+    # Production / maintenance planners and CNC operators ("Programador de Produção (PCP)").
+    r"|\bprogramador(?:a|\(a\))? (?:de )?(?:producao|manutencao|materiais|cnc)\b|\bpcp\b"
     # Field installation work ("Instalador-reparador de linhas de comunicação de dados").
     r"|\binstalador\w*|\breparador\w*|\bfibra optica\b|\bseguranca eletronica\b"
     # Procurement of IT ("Comprador(a) Júnior - TI") and customer-facing support.

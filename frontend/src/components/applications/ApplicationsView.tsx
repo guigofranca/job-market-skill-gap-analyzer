@@ -15,6 +15,7 @@ import {
 import { formatDate, formatDateTime, formatDeadline, formatNumber } from '../../lib/format'
 import { AREA_LABELS, LEVEL_LABELS, SOURCE_LABELS } from '../../lib/labels'
 import { toSafeHref } from '../../lib/safeUrl'
+import { displayTitle } from '../../lib/titles'
 import { EmptyState } from '../feedback/States'
 
 /**
@@ -118,7 +119,7 @@ function ClosingSoon({ items }: { items: readonly Application[] }) {
       <ul className="text-ink-2 mt-1.5 flex flex-col gap-0.5">
         {items.map((item) => (
           <li key={item.job.id}>
-            {item.job.title}
+            {displayTitle(item.job.title)}
             {item.job.company && ` · ${item.job.company}`} —{' '}
             <span className="text-ink font-medium">
               {item.job.deadline && formatDeadline(item.job.deadline)?.label}
@@ -164,12 +165,12 @@ function ApplicationItem({
             rel="noopener noreferrer nofollow"
             className="text-ink hover:text-accent inline-flex items-start gap-1 font-medium"
           >
-            <span>{job.title}</span>
+            <span>{displayTitle(job.title)}</span>
             <ExternalLink aria-hidden className="mt-0.5 size-3.5 shrink-0 opacity-60" />
             <span className="sr-only">(abre em nova aba)</span>
           </a>
         ) : (
-          <span className="text-ink font-medium">{job.title}</span>
+          <span className="text-ink font-medium">{displayTitle(job.title)}</span>
         )}
         <p className="text-muted mt-0.5 text-xs">{details.join(' · ')}</p>
         <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="Situação da vaga">
