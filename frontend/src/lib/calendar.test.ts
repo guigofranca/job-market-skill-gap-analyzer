@@ -40,13 +40,18 @@ describe('deadlinesCalendar', () => {
     expect(ics).toContain(String.raw`SUMMARY:Prazo: Analista de Dados Jr (ACME\, Inc\; Brasil)`)
   })
 
+  it('leaves out past deadlines', () => {
+    const items = [app('a', '2026-10-19'), app('b', '2026-10-20'), app('c', '2026-11-02')]
+    expect(withDeadline(items, now).map((item) => item.job.id[0])).toEqual(['b', 'c'])
+  })
+
   it('leaves out jobs without a deadline and the ones the visitor closed', () => {
     const items = [
       app('a', null),
       app('b', '2026-10-31', { status: 'encerrada' }),
       app('c', '2026-11-02'),
     ]
-    expect(withDeadline(items).map((item) => item.job.id[0])).toEqual(['c'])
+    expect(withDeadline(items, now).map((item) => item.job.id[0])).toEqual(['c'])
     expect(deadlinesCalendar(items, now).match(/BEGIN:VEVENT/g)).toHaveLength(1)
   })
 

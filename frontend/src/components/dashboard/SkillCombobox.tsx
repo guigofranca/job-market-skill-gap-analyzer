@@ -114,9 +114,12 @@ export function SkillCombobox({
       <div
         id={listId}
         role="listbox"
+        tabIndex={-1}
         aria-label={label}
         hidden={!expanded}
         className="border-line bg-surface absolute top-full z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border py-1 shadow-lg"
+        // Scrolling the list (its scrollbar, its padding) must not blur the input and close it.
+        onMouseDown={(event) => event.preventDefault()}
       >
         {options.map((skill, index) => (
           <div
