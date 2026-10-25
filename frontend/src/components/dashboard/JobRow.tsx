@@ -12,7 +12,9 @@ import { LearnLink } from './LearnLink'
 
 const MAX_PLAIN_SKILLS = 6
 const MAX_NICE_SKILLS = 4
-const MAX_BENEFITS = 6
+const MAX_BENEFITS = 4
+/** Separates inline list items with a middle dot (drawn by CSS, not read out). */
+const LIST_DOT = "not-last:after:ml-1.5 not-last:after:content-['·']"
 /** A match on this many detected skills or fewer says little about the job. */
 const FEW_SKILLS = 1
 
@@ -119,44 +121,51 @@ export function JobRow({
           )}
         </ul>
         {nice.length > 0 && (
-          <ul className="mt-1 flex flex-wrap gap-1" aria-label="Diferenciais (não obrigatórios)">
-            {nice.map((slug) => {
-              const has = known.includes(slug)
-              return (
-                <li key={slug} className="chip text-ink-2 gap-1 border-dotted">
-                  {has ? (
-                    <Check aria-hidden className="text-success size-3" />
-                  ) : (
-                    <span className="text-muted">Diferencial</span>
-                  )}
-                  {skillName(slug)}
-                  {has && <span className="sr-only">(diferencial que você tem)</span>}
-                </li>
-              )
-            })}
-            {hiddenNice > 0 && <li className="chip text-ink-2 border-dotted">+{hiddenNice}</li>}
-          </ul>
+          <div className="mt-1 flex items-start gap-1.5">
+            <span aria-hidden className="text-muted shrink-0 py-0.5 text-xs">
+              Diferenciais:
+            </span>
+            <ul className="flex flex-wrap gap-1" aria-label="Diferenciais (não obrigatórios)">
+              {nice.map((slug) => {
+                const has = known.includes(slug)
+                return (
+                  <li key={slug} className="chip text-ink-2 gap-1 border-dotted">
+                    {has && <Check aria-hidden className="text-success size-3" />}
+                    {skillName(slug)}
+                    {has && <span className="sr-only">(diferencial que você tem)</span>}
+                  </li>
+                )
+              })}
+              {hiddenNice > 0 && <li className="chip text-ink-2 border-dotted">+{hiddenNice}</li>}
+            </ul>
+          </div>
         )}
         {benefits.length > 0 && (
-          <ul className="mt-1 flex flex-wrap gap-1" aria-label="Benefícios citados no anúncio">
-            {benefits.map((benefit) => (
-              <li key={benefit} className="chip text-ink-2 gap-1">
-                <Gift aria-hidden className="text-accent size-3" />
-                {BENEFIT_LABELS[benefit]}
-              </li>
-            ))}
-            {hiddenBenefits.length > 0 && (
-              <li
-                className="chip text-ink-2"
-                title={hiddenBenefits.map((benefit) => BENEFIT_LABELS[benefit]).join(', ')}
-              >
-                +{hiddenBenefits.length}
-                <span className="sr-only">
-                  : {hiddenBenefits.map((benefit) => BENEFIT_LABELS[benefit]).join(', ')}
-                </span>
-              </li>
-            )}
-          </ul>
+          // One quiet line: benefits help decide, but the skills are what the list is about.
+          <div className="text-muted mt-1.5 flex items-start gap-1.5 text-xs">
+            <Gift aria-hidden className="text-accent mt-px size-3.5 shrink-0" />
+            <ul
+              className="flex flex-wrap gap-x-1.5 gap-y-0.5"
+              aria-label="Benefícios citados no anúncio"
+            >
+              {benefits.map((benefit) => (
+                <li key={benefit} className={LIST_DOT}>
+                  {BENEFIT_LABELS[benefit]}
+                </li>
+              ))}
+              {hiddenBenefits.length > 0 && (
+                <li
+                  className={LIST_DOT}
+                  title={hiddenBenefits.map((benefit) => BENEFIT_LABELS[benefit]).join(', ')}
+                >
+                  +{hiddenBenefits.length}
+                  <span className="sr-only">
+                    : {hiddenBenefits.map((benefit) => BENEFIT_LABELS[benefit]).join(', ')}
+                  </span>
+                </li>
+              )}
+            </ul>
+          </div>
         )}
       </div>
 
