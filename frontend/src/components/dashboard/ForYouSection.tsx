@@ -278,6 +278,7 @@ function LearnNext({
         <EmptyState title="Nenhuma vaga com competências identificadas para esses filtros" />
       ) : (
         <div
+          aria-busy={query.isFetching && query.isPlaceholderData}
           className={`flex flex-col gap-4 transition-opacity ${query.isFetching && query.isPlaceholderData ? 'opacity-50' : ''}`}
         >
           <ol className="flex flex-col gap-3">

@@ -17,6 +17,8 @@ async function expectNoHorizontalScroll(page: Page) {
 }
 
 async function expectAccessible(page: Page) {
+  // Lists are dimmed while they reload (aria-busy): check the settled page, not a fade.
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
   const { violations } = await new AxeBuilder({ page }).analyze()
   expect(violations.map((item) => `${item.id}: ${item.help}`)).toEqual([])
 }

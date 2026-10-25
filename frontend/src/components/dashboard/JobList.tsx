@@ -213,6 +213,7 @@ export function JobList({
         <>
           <ul
             aria-label={ranked ? 'Vagas ordenadas por compatibilidade' : 'Vagas mais recentes'}
+            aria-busy={query.isFetching && query.isPlaceholderData}
             className={`transition-opacity ${query.isFetching && query.isPlaceholderData ? 'opacity-50' : ''}`}
           >
             {data.items.map((job) => (
