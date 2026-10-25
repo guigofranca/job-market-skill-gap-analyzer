@@ -212,7 +212,7 @@ function ShareProfile({ known }: { known: readonly string[] }) {
     setUrl(link)
     try {
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-        await navigator.share({ title: 'Meu perfil no Skill Gap Analyzer', url: link })
+        await navigator.share({ title: 'Meu perfil no Empregos e Tendências', url: link })
         return
       }
       await navigator.clipboard.writeText(link)

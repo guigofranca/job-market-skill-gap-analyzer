@@ -1,4 +1,4 @@
-# Skill Gap Analyzer
+# Empregos e Tendências
 
 **O que as vagas de Estágio e Júnior em tecnologia pedem, e o que falta no seu perfil.**
 Dashboard com vagas reais do Brasil (Gupy e Sólides) em Dados, Automação, Desenvolvimento e
@@ -44,7 +44,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
 
 ## In English
 
-Skill Gap Analyzer is a full-stack dashboard of real entry-level tech job postings in Brazil
+Empregos e Tendências (*jobs and trends*) is a full-stack dashboard of real entry-level tech job postings in Brazil
 (internships and junior roles in data, automation, software development and IT support). A daily
 ETL pipeline (Python, Pandas, GitHub Actions) collects postings from two job boards, extracts 110
 skills with tested regex rules and publishes a dataset. A read-only FastAPI service aggregates it

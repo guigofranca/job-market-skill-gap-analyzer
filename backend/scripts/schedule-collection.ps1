@@ -42,7 +42,7 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatt
   -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1) -MultipleInstances IgnoreNew
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings `
-  -Description 'Job Market Skill Gap Analyzer: coleta e processa vagas (job-analyzer run).' `
+  -Description 'Empregos e Tendencias: coleta e processa vagas (job-analyzer run).' `
   -Force | Out-Null
 Write-Output "Task '$TaskName' registered: every day at $At."
 Write-Output "Log: $(Join-Path (Split-Path -Parent $PSScriptRoot) 'logs\collect.log')"
