@@ -1,5 +1,6 @@
 import type { Application } from './applications'
 import { STATUS_LABELS } from './applications'
+import { daysUntil } from './format'
 import { displayTitle } from './titles'
 
 /*
@@ -47,9 +48,16 @@ function stamp(date: Date): string {
   return `${date.toISOString().slice(0, 19).replace(/[-:]/g, '')}Z`
 }
 
-/** Saved jobs with a deadline that the visitor is still pursuing. */
-export function withDeadline(applications: readonly Application[]): Application[] {
-  return applications.filter((item) => item.job.deadline && item.status !== 'encerrada')
+/** Saved jobs with a deadline still ahead (today included) that the visitor is pursuing. */
+export function withDeadline(
+  applications: readonly Application[],
+  today: Date = new Date(),
+): Application[] {
+  return applications.filter((item) => {
+    if (!item.job.deadline || item.status === 'encerrada') return false
+    const left = daysUntil(item.job.deadline, today)
+    return left !== null && left >= 0
+  })
 }
 
 export function deadlinesCalendar(applications: readonly Application[], now = new Date()): string {
@@ -60,7 +68,7 @@ export function deadlinesCalendar(applications: readonly Application[], now = ne
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
   ]
-  for (const item of withDeadline(applications)) {
+  for (const item of withDeadline(applications, now)) {
     const { job } = item
     if (!job.deadline) continue
     const [start, end] = dateValues(job.deadline)
