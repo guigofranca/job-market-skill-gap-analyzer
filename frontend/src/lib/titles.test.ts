@@ -12,6 +12,9 @@ describe('displayTitle', () => {
     ['DESENVOLVEDOR PHP / DEVOPS', 'Desenvolvedor PHP / DevOps'],
     ['ANALISTA DE BANCO DE DADOS JR (DBA)', 'Analista de Banco de Dados Jr (DBA)'],
     ['SOFTWARE DEVELOPER JUNIOR - .NET', 'Software Developer Junior - .NET'],
+    ['ANALISTA DE DADOS I', 'Analista de Dados I'],
+    ['AUXILIAR EM T.I.', 'Auxiliar em T.I.'],
+    ['ANALISTA DE MIS JR', 'Analista de MIS Jr'],
   ])('%s -> %s', (title, expected) => {
     expect(displayTitle(title)).toBe(expected)
   })

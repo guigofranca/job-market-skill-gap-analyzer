@@ -61,8 +61,38 @@ DEFAULT_GUPY_TERMS = (
     "redes",
     "seguranca da informacao",
 )
+# Entry-level titles that do not say "júnior", searched as they are (no level added).
+DEFAULT_GUPY_ENTRY_TITLES = (
+    "assistente de ti",
+    "auxiliar de ti",
+    "tecnico de ti",
+    "tecnico de informatica",
+    "auxiliar de informatica",
+    "tecnico de suporte",
+    "assistente de suporte",
+    "auxiliar de suporte",
+    "suporte n1",
+    "assistente de help desk",
+    "tecnico de redes",
+    "assistente de infraestrutura",
+    "tecnico de infraestrutura",
+    "assistente de sistemas",
+    "assistente de dados",
+    "analista de dados i",
+    "analista de suporte i",
+    "analista de sistemas i",
+    "analista de infraestrutura i",
+    "desenvolvedor i",
+    "engenheiro de software i",
+)
 
 CsvList = Annotated[list[str], NoDecode]
+
+
+def _search_terms(terms: list[str]) -> list[str]:
+    if any(len(term) > 80 for term in terms):
+        raise ValueError("search terms must have at most 80 characters")
+    return list(dict.fromkeys(term.lower() for term in terms))
 
 
 class Environment(StrEnum):
@@ -110,6 +140,7 @@ class Settings(BaseSettings):
 
     gupy_api_url: HttpUrl = HttpUrl("https://portal.gupy.io/api/job-search/jobs")
     gupy_search_terms: CsvList = Field(default_factory=lambda: list(DEFAULT_GUPY_TERMS))
+    gupy_entry_titles: CsvList = Field(default_factory=lambda: list(DEFAULT_GUPY_ENTRY_TITLES))
     gupy_page_size: int = Field(default=50, ge=10, le=100)
     gupy_max_pages_per_query: int = Field(default=2, ge=1, le=10)
 
@@ -131,6 +162,7 @@ class Settings(BaseSettings):
     @field_validator(
         "enabled_sources",
         "gupy_search_terms",
+        "gupy_entry_titles",
         "api_cors_origins",
         "api_allowed_hosts",
         mode="before",
@@ -146,9 +178,13 @@ class Settings(BaseSettings):
     def _validate_terms(cls, terms: list[str]) -> list[str]:
         if not terms:
             raise ValueError("at least one search term is required")
-        if any(len(term) > 80 for term in terms):
-            raise ValueError("search terms must have at most 80 characters")
-        return list(dict.fromkeys(term.lower() for term in terms))
+        return _search_terms(terms)
+
+    @field_validator("gupy_entry_titles")
+    @classmethod
+    def _validate_entry_titles(cls, titles: list[str]) -> list[str]:
+        # May be empty: the searches by level still run.
+        return _search_terms(titles)
 
     @field_validator("data_dir")
     @classmethod

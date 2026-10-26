@@ -13,9 +13,11 @@ from job_analyzer.analytics.schemas import SkillTrend, TrendDay, TrendPoint, Tre
 from job_analyzer.models import Area, History, Level
 from job_analyzer.processing.skills import SKILLS_BY_SLUG
 
-# Days collected from a different set of sources are not comparable (Remotar was retired on
-# 2026-10-15: its jobs would read as a market drop). Move this date when sources change.
-COMPARABLE_SINCE = date(2026, 10, 15)
+# Days collected with other sources or scope rules are not comparable: Remotar was retired on
+# 2026-10-15 (a market drop that wasn't), and entry-level titles without "júnior" ("Assistente
+# de TI", "Analista de Dados I") count from 2026-10-27 (a jump that wasn't). Move this date when
+# either changes.
+COMPARABLE_SINCE = date(2026, 10, 27)
 # A skill moves the needle only if enough jobs ask for it: 1 -> 2 jobs is not a trend.
 MIN_MOVER_COUNT = 5
 MAX_MOVERS = 5

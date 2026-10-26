@@ -32,7 +32,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   meia-noite de Brasília, *rate limit*, CSP e cabeçalhos de segurança.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 322 testes no backend (pytest, 94% de cobertura) e 148 no frontend (Vitest),
+- **Qualidade**: 373 testes no backend (pytest, 94% de cobertura) e 152 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -146,7 +146,7 @@ and follow which skills are trending. The interface is in Portuguese.
 
 | Fonte | Cobertura | Acesso | Observações |
 |---|---|---|---|
-| **Gupy** | Grandes e médias empresas | Endpoint público usado pelo portal `portal.gupy.io` (sem chave) | Traz o tipo da vaga (`vacancy_type_internship`), o que melhora a classificação de estágio. A Gupy também hospeda algumas vagas no exterior (México, Argentina…): elas são descartadas. |
+| **Gupy** | Grandes e médias empresas | Endpoint público usado pelo portal `portal.gupy.io` (sem chave) | Cada termo é buscado como estágio, "júnior" e "jr", e há buscas para cargos de entrada que não dizem o nível ("Assistente de TI", "Técnico de Informática", "Analista de Dados I"). Traz o tipo da vaga (`vacancy_type_internship`), o que melhora a classificação de estágio. A Gupy também hospeda algumas vagas no exterior (México, Argentina…): elas são descartadas. |
 | **Sólides** | Pequenas e médias empresas | Endpoint público usado pelo portal `vagas.solides.com.br` (sem chave) | Busca filtrada pela área *Tecnologia* (estágio pelo título, júnior pelo filtro de senioridade). Inclui as *hard skills* cadastradas na vaga. |
 
 Gupy e Sólides não têm APIs oficialmente documentadas: os endpoints são os mesmos que os
@@ -249,7 +249,7 @@ flowchart LR
 │   │   ├── pipeline.py         # Orquestração collect → process
 │   │   └── cli.py              # job-analyzer collect | process | run | serve
 │   ├── scripts/                # collect.ps1 e schedule-collection.ps1 (coleta diária no Windows)
-│   ├── tests/                  # 322 testes (pytest)
+│   ├── tests/                  # 373 testes (pytest)
 │   ├── data/processed/         # dataset.json (snapshot versionado)
 │   ├── .env.example
 │   ├── app.py + vercel.json    # Entrada da API como Vercel Function
@@ -289,7 +289,11 @@ flowchart LR
 3. **Nível.** Pelo título (`estágio`, `estagiário(a)`, `intern`, `júnior`, `jr`, `trainee`…) e,
    se o título não diz, pelas dicas da fonte (tipo `internship` da Gupy, senioridade da Sólides —
    ignoradas quando ambíguas, como "Júnior + Sênior"). Títulos pleno/sênior/
-   *mid-level* e programas de Jovem Aprendiz ficam fora do escopo.
+   *mid-level* e programas de Jovem Aprendiz ficam fora do escopo. Cargos de entrada que não
+   dizem "júnior" contam como **Júnior**: assistente, auxiliar e técnico como o próprio cargo
+   ("Assistente de TI", "Técnico de Informática"; não "Analista de Suporte Técnico"), o nível I
+   de uma carreira ("Analista de Dados I") e o suporte N1. Níveis acima ("Técnico Suporte II",
+   "Nível 2", "N2", "Especializado") ficam de fora.
 4. **Local, modalidade, contrato e inclusão.** Vêm primeiro dos campos estruturados das fontes
    (estado/cidade, `workplaceType` da Gupy, tipo de contrato e etiquetas afirmativas da
    Sólides). Lacunas são preenchidas por regras conservadoras: o **título** vale ("Vaga
@@ -301,9 +305,11 @@ flowchart LR
    Infraestrutura → Desenvolvimento). **Suporte e Infraestrutura** reúne suporte técnico, help
    desk, NOC, redes, infraestrutura, cloud e segurança da informação — a principal porta de
    entrada em TI para quem não tem experiência. Técnicos de campo (fibra óptica, instalação),
-   compras de TI e suporte ao cliente/paciente ficam de fora. Títulos genéricos ("Estágio em TI",
-   "Analista de Suporte") são classificados pelas competências pedidas, desde que haja sinal
-   suficiente; caso contrário, ficam de fora.
+   compras de TI, suporte ao cliente/paciente, atendimento (CAC) e cargos administrativos ou de
+   marketing dentro de TI ficam de fora. Títulos genéricos ("Estágio em TI", "Analista de
+   Suporte", "Assistente de Infraestrutura") são classificados pelas competências pedidas, desde
+   que haja sinal suficiente. Sem sinal, um cargo genérico de TI ("Estágio em TI", "Assistente de
+   TI") vai para Suporte e Infraestrutura; os outros ficam de fora.
 6. **Exigido × diferencial.** A descrição é separada em seções (`processing/sections.py`):
    requisitos e responsabilidades contam como **exigidos**; "Diferenciais", "Desejável" e
    frases como "Power BI será um diferencial" contam como **diferencial**; "Sobre a empresa",
@@ -515,13 +521,13 @@ curl "http://127.0.0.1:8000/api/v1/skills/gap?known=python,sql&level=estagio&are
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 322 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+pytest --cov                 # 373 testes: skills, classificação, limpeza, fontes (HTTP mockado),
                              # cliente HTTP, storage, analytics, API e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (148 testes)
+npm test                     # Vitest + Testing Library (152 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
@@ -598,9 +604,10 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
   [Deploy na Vercel](#deploy-na-vercel)).
 - **Vagas encerradas**: as que passam do prazo de inscrição somem na hora (pelo horário de
   Brasília), mesmo antes da próxima coleta; vagas retiradas pela fonte saem na coleta seguinte.
-- **Tendência**: o histórico diário começa em 14/10/2026, mas a série parte de 15/10/2026,
-  quando a Remotar saiu das fontes (antes disso, o total de vagas não é comparável). O histórico
-  é agregado por nível × área, então a tendência ignora os outros filtros.
+- **Tendência**: o histórico diário começa em 14/10/2026, mas a série parte de 27/10/2026,
+  quando os cargos de entrada sem "júnior" no título passaram a contar (antes disso, o total de
+  vagas não é comparável; a Remotar já tinha saído das fontes em 15/10/2026). O histórico é
+  agregado por nível × área, então a tendência ignora os outros filtros.
 - Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
 
 ---

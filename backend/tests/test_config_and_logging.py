@@ -22,6 +22,13 @@ def test_csv_values_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.api_cors_origins == ["http://localhost:5173", "https://app.example.com"]
 
 
+def test_entry_titles_are_normalised_and_may_be_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GUPY_ENTRY_TITLES", "Assistente de TI, assistente de ti, Técnico de TI")
+    assert make().gupy_entry_titles == ["assistente de ti", "técnico de ti"]
+    monkeypatch.setenv("GUPY_ENTRY_TITLES", "")
+    assert make().gupy_entry_titles == []
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [

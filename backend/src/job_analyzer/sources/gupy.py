@@ -45,6 +45,9 @@ class GupySource(JobSource):
             yield {"jobName": term, "type": INTERNSHIP_TYPE}
             for seniority in JUNIOR_TERMS:
                 yield {"jobName": f"{term} {seniority}"}
+        # Entry-level titles that carry no level word ("Assistente de TI", "Analista de Dados I").
+        for title in self.settings.gupy_entry_titles:
+            yield {"jobName": title}
 
     def iter_items(self) -> Iterator[RawItem]:
         url = str(self.settings.gupy_api_url)

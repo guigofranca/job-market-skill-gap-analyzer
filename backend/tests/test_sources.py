@@ -41,7 +41,12 @@ def json_response(payload: Any) -> httpx.Response:
 
 def test_gupy_paginates_validates_and_deduplicates(settings: Settings) -> None:
     settings = settings.model_copy(
-        update={"gupy_search_terms": ["dados"], "gupy_page_size": 2, "gupy_max_pages_per_query": 3}
+        update={
+            "gupy_search_terms": ["dados"],
+            "gupy_entry_titles": [],
+            "gupy_page_size": 2,
+            "gupy_max_pages_per_query": 3,
+        }
     )
     seen_params: list[dict[str, str]] = []
 
@@ -71,8 +76,35 @@ def test_gupy_paginates_validates_and_deduplicates(settings: Settings) -> None:
     assert [params["jobName"] for params in seen_params[-2:]] == ["dados junior", "dados jr"]
 
 
+def test_gupy_searches_entry_titles_as_they_are(settings: Settings) -> None:
+    settings = settings.model_copy(
+        update={
+            "gupy_search_terms": ["dados"],
+            "gupy_entry_titles": ["assistente de ti"],
+            "gupy_max_pages_per_query": 1,
+        }
+    )
+    seen: list[tuple[str, str | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.params["jobName"], request.url.params.get("type")))
+        return json_response({"data": []})
+
+    with HttpClient(settings, transport=httpx.MockTransport(handler), sleep=lambda _: None) as http:
+        GupySource(settings, http).fetch()
+
+    assert seen == [
+        ("dados", "vacancy_type_internship"),
+        ("dados junior", None),
+        ("dados jr", None),
+        ("assistente de ti", None),
+    ]
+
+
 def test_gupy_records_errors_and_keeps_partial_results(settings: Settings) -> None:
-    settings = settings.model_copy(update={"gupy_search_terms": ["dados", "bi"]})
+    settings = settings.model_copy(
+        update={"gupy_search_terms": ["dados", "bi"], "gupy_entry_titles": []}
+    )
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.params["jobName"].startswith("bi"):

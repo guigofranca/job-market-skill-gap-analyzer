@@ -11,7 +11,7 @@ const SMALL_WORDS = new Set(
 /** Kept in capitals. */
 const ACRONYMS = new Set(
   [
-    'TI IT IA AI BI ML QA UX UI API APIS ERP SAP NOC AWS GCP SOC SRE',
+    'TI IT IA AI BI ML QA UX UI API APIS ERP SAP NOC AWS GCP SOC SRE MIS',
     'CLT PJ PCD ETL RPA TIC DBA BU NET VTEX',
     // The 27 state codes ("Suporte Técnico - SP").
     'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO',
