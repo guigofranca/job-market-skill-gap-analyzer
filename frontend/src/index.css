@@ -4,8 +4,51 @@
  * Design tokens. Every color in the UI and in the charts is a role (surface, ink, series-n...),
  * so light/dark themes swap values in one place. Chart palette = validated categorical palette
  * (adjacent CVD ΔE ≥ 8 in both modes); series colors are never used for text.
+ * Dark is the default theme; <html data-theme='light'> (the header toggle) switches to light.
  */
 :root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-2: #242423;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #a3a29c;
+  --axis-text: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgb(255 255 255 / 0.1);
+  --accent: #4cc3b6;
+  --accent-soft: #123f3b;
+  --danger: #e66767;
+  --success-text: #0ca30c;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+
+  /* Dark mode flips the anchor: the most remote is the lightest (steps 200/400/600). */
+  --workplace-1: #9ec5f4;
+  --workplace-2: #3987e5;
+  --workplace-3: #184f95;
+  --on-workplace-1: #0b0b0b;
+  --on-workplace-2: #0b0b0b;
+  --on-workplace-3: #ffffff;
+
+  --header: #0f1a19;
+  --header-ink: #ffffff;
+  --header-muted: #a3b1ae;
+  --header-eyebrow: #4cc3b6;
+  --header-danger: #e66767;
+  --header-line: rgb(76 195 182 / 0.2);
+  --logo: #4cc3b6;
+  --on-logo: #0b0b0b;
+}
+
+:root[data-theme='light'] {
   color-scheme: light;
   --page: #f9f9f7;
   --surface: #fcfcfb;
@@ -49,92 +92,6 @@
   --header-line: rgb(15 107 102 / 0.18);
   --logo: #0f6b66;
   --on-logo: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme='light'])) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #242423;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --muted: #a3a29c;
-    --axis-text: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgb(255 255 255 / 0.1);
-    --accent: #4cc3b6;
-    --accent-soft: #123f3b;
-    --danger: #e66767;
-    --success-text: #0ca30c;
-
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-
-    /* Dark mode flips the anchor: the most remote is the lightest (steps 200/400/600). */
-    --workplace-1: #9ec5f4;
-    --workplace-2: #3987e5;
-    --workplace-3: #184f95;
-    --on-workplace-1: #0b0b0b;
-    --on-workplace-2: #0b0b0b;
-    --on-workplace-3: #ffffff;
-
-    --header: #0f1a19;
-    --header-ink: #ffffff;
-    --header-muted: #a3b1ae;
-    --header-eyebrow: #4cc3b6;
-    --header-danger: #e66767;
-    --header-line: rgb(76 195 182 / 0.2);
-    --logo: #4cc3b6;
-    --on-logo: #0b0b0b;
-  }
-}
-
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-2: #242423;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #a3a29c;
-  --axis-text: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgb(255 255 255 / 0.1);
-  --accent: #4cc3b6;
-  --accent-soft: #123f3b;
-  --danger: #e66767;
-  --success-text: #0ca30c;
-
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --series-4: #c98500;
-  --series-5: #d55181;
-  --series-6: #008300;
-
-  /* Dark mode flips the anchor: the most remote is the lightest (steps 200/400/600). */
-  --workplace-1: #9ec5f4;
-  --workplace-2: #3987e5;
-  --workplace-3: #184f95;
-  --on-workplace-1: #0b0b0b;
-  --on-workplace-2: #0b0b0b;
-  --on-workplace-3: #ffffff;
-
-  --header: #0f1a19;
-  --header-ink: #ffffff;
-  --header-muted: #a3b1ae;
-  --header-eyebrow: #4cc3b6;
-  --header-danger: #e66767;
-  --header-line: rgb(76 195 182 / 0.2);
-  --logo: #4cc3b6;
-  --on-logo: #0b0b0b;
 }
 
 @theme inline {

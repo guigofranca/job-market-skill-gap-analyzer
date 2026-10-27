@@ -134,7 +134,7 @@ and follow which skills are trending. The interface is in Portuguese.
   etiquetas de inclusão e as competências separadas em **exigidas** e **diferenciais** (estas
   nunca contam como "falta").
 - O cabeçalho mostra há quanto tempo os dados foram atualizados e avisa quando passam de 3 dias.
-- Tema claro/escuro, layout responsivo e visualização em **tabela** para todo gráfico (acessibilidade).
+- Tema escuro por padrão (com botão para o claro), layout responsivo e visualização em **tabela** para todo gráfico (acessibilidade).
 - Títulos de vaga escritos todo em maiúsculas são exibidos em formato de título
   ("ANALISTA DE SUPORTE JR - SP" → "Analista de Suporte Jr - SP"), mantendo siglas.
 - Quando o anúncio cita só uma competência técnica, o "100%" vem com o aviso *poucos requisitos
