@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +15,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from job_analyzer import __version__
-from job_analyzer.analytics import DatasetRepository
+from job_analyzer.analytics import DatasetRepository, SkillAnalytics
 from job_analyzer.api.errors import register_exception_handlers
+from job_analyzer.api.mcp_server import build_mcp_server, mcp_routes
 from job_analyzer.api.middleware import (
     CdnCacheMiddleware,
     RateLimitMiddleware,
@@ -34,6 +35,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
+    def current_analytics() -> SkillAnalytics:
+        # Looked up on each call: the repository only exists once the lifespan has started.
+        repository: DatasetRepository = app.state.repository
+        return repository.get()
+
+    mcp = build_mcp_server(current_analytics) if settings.api_enable_mcp else None
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         repository = DatasetRepository(make_store(settings))
@@ -41,7 +49,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if repository.last_error:
             logger.warning("API started without data: %s", repository.last_error)
         app.state.repository = repository
-        yield
+        async with AsyncExitStack() as stack:
+            if mcp:
+                await stack.enter_async_context(mcp.session_manager.run())
+            yield
 
     docs = settings.docs_enabled
     app = FastAPI(
@@ -82,4 +93,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(app)
     app.include_router(health_router)
     app.include_router(router)
+    if mcp:
+        app.router.routes.extend(mcp_routes(mcp, settings))
     return app

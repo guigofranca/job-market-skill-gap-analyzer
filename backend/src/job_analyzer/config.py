@@ -158,6 +158,8 @@ class Settings(BaseSettings):
     # Unset, the socket address is used: never name a header that clients can set themselves.
     api_client_ip_header: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
     api_enable_docs: bool = True
+    # The MCP server at /mcp (tools for AI assistants). Off: the route does not exist.
+    api_enable_mcp: bool = True
 
     @field_validator(
         "enabled_sources",

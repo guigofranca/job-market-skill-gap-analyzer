@@ -6,7 +6,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
 
 **🔗 Acesse: [seu-empregobr.vercel.app](https://seu-empregobr.vercel.app)** · feito por [@guigofranca](https://github.com/guigofranca)
 
-![Demonstração: marcar competências, ver as vagas que combinam e o que falta, a aba Mercado e a tendência](docs/demo.gif)
+![Demonstração: marcar competências, ver as vagas que combinam e o que falta, e a aba Mercado](docs/demo.gif)
 
 ![Stack](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![Stack](https://img.shields.io/badge/FastAPI-Pandas-009688?logo=fastapi&logoColor=white)
@@ -30,9 +30,12 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   Uma checagem de sanidade impede publicar um dataset quebrado.
 - **API FastAPI somente leitura na Vercel**: agregações com Pandas, cache na CDN até a
   meia-noite de Brasília, *rate limit*, CSP e cabeçalhos de segurança.
+- **Servidor MCP**: as mesmas análises como ferramentas para o Claude, o ChatGPT ou o Cursor
+  responderem perguntas sobre as vagas (*"quais vagas combinam com meu currículo?"*); somente
+  leitura e sem custo de IA para o projeto.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 373 testes no backend (pytest, 94% de cobertura) e 152 no frontend (Vitest),
+- **Qualidade**: 402 testes no backend (pytest, 95% de cobertura) e 152 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -50,7 +53,9 @@ ETL pipeline (Python, Pandas, GitHub Actions) collects postings from two job boa
 skills with tested regex rules and publishes a dataset. A read-only FastAPI service aggregates it
 on demand, and a React + TypeScript dashboard lets job seekers rank openings by the skills they
 already have, see what they are missing and where to learn it for free, track their applications
-and follow which skills are trending. The interface is in Portuguese.
+and follow which skills are trending. The same analyses are also served as an MCP server, so AI
+assistants such as Claude can answer questions about the jobs with this data. The interface is in
+Portuguese.
 
 ---
 
@@ -65,9 +70,10 @@ and follow which skills are trending. The interface is in Portuguese.
 7. [Como rodar localmente](#como-rodar-localmente)
 8. [Deploy na Vercel](#deploy-na-vercel)
 9. [API REST](#api-rest)
-10. [Qualidade: testes, lint e CI](#qualidade-testes-lint-e-ci)
-11. [Adicionando uma nova fonte de vagas](#adicionando-uma-nova-fonte-de-vagas)
-12. [Limitações e próximos passos](#limitações-e-próximos-passos)
+10. [Use com IA (servidor MCP)](#use-com-ia-servidor-mcp)
+11. [Qualidade: testes, lint e CI](#qualidade-testes-lint-e-ci)
+12. [Adicionando uma nova fonte de vagas](#adicionando-uma-nova-fonte-de-vagas)
+13. [Limitações e próximos passos](#limitações-e-próximos-passos)
 
 ---
 
@@ -87,7 +93,7 @@ and follow which skills are trending. The interface is in Portuguese.
 
 **Frontend (React + Tailwind + Recharts)**
 
-![Aba Mercado do dashboard: indicadores, competências mais exigidas, categorias, modalidade, estados, Estágio × Júnior e tendência](docs/dashboard-mercado.png)
+![Aba Mercado do dashboard: indicadores, competências mais exigidas, categorias, modalidade, estados e Estágio × Júnior](docs/dashboard-mercado.png)
 
 - Três abas (a aba ativa também vai para a URL, `?aba=mercado`):
   - **Vagas** (padrão), para quem procura emprego, num fluxo só:
@@ -242,7 +248,7 @@ flowchart LR
 │   │   ├── processing/         # text.py, cleaning.py (Pandas), classification.py, skills.py,
 │   │   │                       # sections.py (exigido × diferencial), eligibility.py (requisitos)
 │   │   ├── analytics/          # Agregações com Pandas, tendências e repositório com hot reload
-│   │   ├── api/                # FastAPI: app, rotas, parâmetros, middlewares, erros
+│   │   ├── api/                # FastAPI: app, rotas, parâmetros, middlewares, erros, servidor MCP
 │   │   ├── config.py           # Configuração via variáveis de ambiente (pydantic-settings)
 │   │   ├── http_client.py      # Retries, backoff, timeouts, limite de resposta
 │   │   ├── storage.py          # Escrita atômica, proteção contra path traversal
@@ -367,7 +373,7 @@ Processamento
 | **Validação de entrada (frontend)** | Zod valida configuração (`VITE_*`), toda resposta da API, filtros vindos da URL e dados do `localStorage`. Valores inválidos são descartados, não renderizados. |
 | **XSS** | React escapa o conteúdo; nenhum `dangerouslySetInnerHTML` (regra de lint). Links de vagas passam por `toSafeHref` (só `http/https`) e abrem com `rel="noopener noreferrer"`. **Content-Security-Policy** estrita injetada no build (`script-src 'self'`, `connect-src` restrito à API). |
 | **Injeção / ReDoS** | Busca textual da API usa `str.contains(..., regex=False)`; parâmetros montados com `URLSearchParams`. |
-| **Hardening da API** | Somente `GET`; CORS com lista de origens explícita (sem `*` em produção); `TrustedHost`; *rate limit* por IP (429 + `Retry-After`; na Vercel, aplicado pelo Firewall do projeto); headers `X-Content-Type-Options`, `X-Frame-Options`, CSP, `Referrer-Policy`, HSTS em produção; `X-Request-ID` para rastreio; `/docs` desligado em produção; header `Server` do Uvicorn removido (na Vercel, a plataforma adiciona o próprio `Server: Vercel`). |
+| **Hardening da API** | Somente `GET`, exceto o servidor MCP (`POST /mcp`: somente leitura, corpo limitado, origem verificada; ver [Use com IA](#use-com-ia-servidor-mcp)); CORS com lista de origens explícita (sem `*` em produção); `TrustedHost`; *rate limit* por IP (429 + `Retry-After`; na Vercel, aplicado pelo Firewall do projeto); headers `X-Content-Type-Options`, `X-Frame-Options`, CSP, `Referrer-Policy`, HSTS em produção; `X-Request-ID` para rastreio; `/docs` desligado em produção; header `Server` do Uvicorn removido (na Vercel, a plataforma adiciona o próprio `Server: Vercel`). |
 | **Tratamento de erros (backend)** | Hierarquia de exceções de domínio; uma fonte com falha não interrompe as outras; *retries* com *backoff* exponencial + *jitter* respeitando `Retry-After`; respostas 4xx/5xx sem stack trace; dataset inválido → 503 com mensagem clara, mantendo o último dataset válido. |
 | **Tratamento de erros (frontend)** | `ErrorBoundary` na raiz (com tela específica para configuração inválida) **e por seção**; estados de carregando / erro com "tentar novamente" / vazio em cada widget; *retry* automático só para falhas transitórias; dados anteriores mantidos (esmaecidos) durante recarregamentos. |
 | **Integridade de dados** | Escrita atômica (arquivo temporário + `os.replace`), proteção contra *path traversal*, limites de tamanho de resposta HTTP e de arquivo. |
@@ -517,12 +523,50 @@ curl "http://127.0.0.1:8000/api/v1/skills/gap?known=python,sql&level=estagio&are
 
 ---
 
+## Use com IA (servidor MCP)
+
+A API também é um **servidor MCP** (*Model Context Protocol*): conecte-o ao Claude, ao ChatGPT, ao
+Cursor ou a outro assistente compatível e pergunte sobre as vagas em linguagem natural. O
+assistente cuida da linguagem do lado de quem usa; o servidor só filtra e agrega o dataset, como a
+API REST, então o projeto não paga nada de IA.
+
+**Endereço:** `https://job-market-skill-gap-analyzer.vercel.app/mcp` (Streamable HTTP, sem login)
+
+- **Claude Code:** `claude mcp add --transport http empregos https://job-market-skill-gap-analyzer.vercel.app/mcp`
+- **Claude (web ou desktop):** em *Configurações → Conectores*, adicione um conector personalizado
+  com esse endereço.
+- **Outros clientes:** qualquer um que aceite servidores MCP remotos por HTTP.
+- **Localmente:** `http://127.0.0.1:8000/mcp`, com a API rodando.
+
+> Exemplos de perguntas:
+> - "Sei Python, SQL e Excel. Quais vagas de estágio em Dados no RJ eu já consigo aplicar, e o que
+>   devo aprender primeiro?"
+> - (colando o currículo) "Quais vagas combinam com este currículo?"
+> - "O que muda entre estágio e júnior em Desenvolvimento?"
+
+| Ferramenta | O que faz |
+|---|---|
+| `list_filters` | Visão geral e valores válidos dos filtros: níveis, áreas, estados e slugs das competências (com `state`, as cidades) |
+| `search_jobs` | Vagas filtradas, mais recentes primeiro, com link, prazo, salário (quando informado) e competências |
+| `analyze_profile` | Compara as competências de uma pessoa com as vagas: quantas estão prontas para aplicar, as vagas ordenadas pelo que falta e o que aprender a seguir |
+| `top_skills` | Competências mais exigidas no filtro |
+| `compare_levels` | Estágio × Júnior por competência |
+
+**Segurança:** todas as ferramentas são somente leitura e validam os argumentos com as mesmas
+regras da API REST (enums, limites numéricos e de tamanho, slugs conhecidos); argumentos com nome
+desconhecido são recusados em vez de ignorados. Só `POST` (nenhuma conexão fica aberta), corpo
+limitado a 64 KB, páginas de outras origens recusadas (403), e a checagem de host e o *rate limit*
+da API valem aqui também. As respostas trazem só o que o dashboard já mostra, nenhum trecho das
+descrições. Para desligar: `API_ENABLE_MCP=false`.
+
+---
+
 ## Qualidade: testes, lint e CI
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 373 testes: skills, classificação, limpeza, fontes (HTTP mockado),
-                             # cliente HTTP, storage, analytics, API e configuração
+pytest --cov                 # 402 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+                             # cliente HTTP, storage, analytics, API, servidor MCP e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
