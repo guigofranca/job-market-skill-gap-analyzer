@@ -39,6 +39,32 @@ test('without a profile it lists the newest jobs, linking to the original postin
   await expectAccessible(page)
 })
 
+test('"Usar com IA" gives the address of a working MCP server', async ({ page }) => {
+  await page.getByRole('button', { name: 'Usar com IA' }).click()
+  const box = page.getByRole('dialog', { name: 'Use com IA' })
+  await expect(box).toBeVisible()
+  await expectNoHorizontalScroll(page)
+  await expectAccessible(page)
+
+  // The address shown is the one an assistant would call: it lists the tools.
+  const address = (await box.locator('code').first().textContent()) ?? ''
+  expect(address).toMatch(/^https?:\/\/.+\/mcp$/)
+  const response = await page.request.post(address, {
+    headers: {
+      Accept: 'application/json, text/event-stream',
+      'MCP-Protocol-Version': '2025-11-25',
+    },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  })
+  expect(response.ok()).toBe(true)
+  const tools = (await response.json()) as { result: { tools: { name: string }[] } }
+  expect(tools.result.tools.map((tool) => tool.name)).toContain('analyze_profile')
+
+  await page.keyboard.press('Escape')
+  await expect(box).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Usar com IA' })).toBeFocused()
+})
+
 test('a profile ranks the jobs and says what is missing and where to learn it', async ({
   page,
 }) => {

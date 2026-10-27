@@ -1,6 +1,7 @@
 import { Moon, Sun } from 'lucide-react'
 import type { Meta } from '../../api/schemas'
 import { AUTHOR } from '../../config/author'
+import { getConfig } from '../../config/env'
 import type { Theme } from '../../hooks/useTheme'
 import {
   formatDate,
@@ -9,6 +10,7 @@ import {
   formatRelativeTime,
   isStale,
 } from '../../lib/format'
+import { AiConnect } from './AiConnect'
 
 /** The favicon's bar chart, in the brand color. */
 function LogoMark() {
@@ -23,7 +25,7 @@ function LogoMark() {
 }
 
 const HEADER_BUTTON =
-  'border-header-line text-header-ink hover:border-header-eyebrow focus-visible:outline-header-eyebrow inline-flex items-center rounded-lg border p-2 transition-colors'
+  'border-header-line text-header-ink hover:border-header-eyebrow focus-visible:outline-header-eyebrow inline-flex items-center gap-1.5 rounded-lg border transition-colors'
 
 export function Header({
   meta,
@@ -82,11 +84,20 @@ export function Header({
               'dados indisponíveis no momento'
             )}
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <AiConnect
+              apiBaseUrl={getConfig().apiBaseUrl}
+              buttonClassName={`${HEADER_BUTTON} px-3 py-1.5 text-sm font-medium`}
+            />
+            <span className="text-header-muted text-xs max-sm:hidden">
+              Pergunte ao Claude sobre estas vagas
+            </span>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            className={HEADER_BUTTON}
+            className={`${HEADER_BUTTON} p-2`}
             onClick={onToggleTheme}
             aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
             title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}

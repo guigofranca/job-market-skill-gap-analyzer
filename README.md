@@ -32,10 +32,11 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   meia-noite de Brasília, *rate limit*, CSP e cabeçalhos de segurança.
 - **Servidor MCP**: as mesmas análises como ferramentas para o Claude, o ChatGPT ou o Cursor
   responderem perguntas sobre as vagas (*"quais vagas combinam com meu currículo?"*); somente
-  leitura e sem custo de IA para o projeto.
+  leitura e sem custo de IA para o projeto. No site, o botão **Usar com IA** mostra o endereço e
+  o passo a passo.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 402 testes no backend (pytest, 95% de cobertura) e 152 no frontend (Vitest),
+- **Qualidade**: 402 testes no backend (pytest, 95% de cobertura) e 155 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -532,6 +533,9 @@ API REST, então o projeto não paga nada de IA.
 
 **Endereço:** `https://job-market-skill-gap-analyzer.vercel.app/mcp` (Streamable HTTP, sem login)
 
+No dashboard, o botão **Usar com IA** (no topo) mostra esse endereço com botão de copiar, o passo a
+passo no Claude e exemplos de perguntas; o endereço vem de `VITE_API_BASE_URL`.
+
 - **Claude Code:** `claude mcp add --transport http empregos https://job-market-skill-gap-analyzer.vercel.app/mcp`
 - **Claude (web ou desktop):** em *Configurações → Conectores*, adicione um conector personalizado
   com esse endereço.
@@ -571,7 +575,7 @@ ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (152 testes)
+npm test                     # Vitest + Testing Library (155 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
