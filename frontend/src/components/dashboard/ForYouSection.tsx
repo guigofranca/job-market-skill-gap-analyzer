@@ -262,6 +262,17 @@ function LearnNext({
   const top = useTopSkills(filters, MAX_LEARN, !hasProfile)
   const query = hasProfile ? gap : top
   const headingId = useId()
+  // With a profile, the shares are among the jobs asking for something the visitor knows (all
+  // filtered jobs when none does, or with an API that does not say).
+  const related = hasProfile ? gap.data?.related_jobs : undefined
+  const intro = !hasProfile
+    ? 'As mais pedidas nas vagas filtradas. Marque as que você já sabe para ver o que falta no seu perfil.'
+    : related === 0
+      ? 'Nenhuma vaga filtrada pede o que você marcou: estas são as mais pedidas.'
+      : 'O que mais pedem as vagas que já pedem algo que você sabe.'
+  const footnote = related
+    ? `% = das ${formatNumber(related)} vagas que pedem algo que você sabe.`
+    : '% = vagas filtradas que pedem a competência.'
 
   let body
   if (query.isPending) {
@@ -292,7 +303,7 @@ function LearnNext({
               />
             ))}
           </ol>
-          <p className="text-muted text-xs">% = vagas filtradas que pedem a competência.</p>
+          <p className="text-muted text-xs">{footnote}</p>
         </div>
       )
   }
@@ -303,11 +314,7 @@ function LearnNext({
         <h3 id={headingId} className="text-ink flex items-center gap-1.5 text-sm font-semibold">
           <Sparkles aria-hidden className="text-accent size-4" />O que aprender a seguir
         </h3>
-        <p className="text-muted mt-0.5 text-sm">
-          {hasProfile
-            ? 'As competências que mais aproximam você das vagas.'
-            : 'As mais pedidas nas vagas filtradas. Marque as que você já sabe para ver o que falta no seu perfil.'}
-        </p>
+        <p className="text-muted mt-0.5 text-sm">{intro}</p>
       </header>
       {body}
     </section>

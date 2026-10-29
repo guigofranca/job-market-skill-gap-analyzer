@@ -136,6 +136,38 @@ describe('ForYouSection', () => {
     expect(screen.queryByRole('button', { name: 'Adicionar SQL' })).not.toBeInTheDocument()
   })
 
+  it('says the suggestions come from the jobs that already ask for something you know', () => {
+    mockedUseGap.mockReturnValue({
+      data: { ...gap, related_jobs: 30 },
+      isPending: false,
+      isError: false,
+      isFetching: false,
+      isPlaceholderData: false,
+    } as unknown as ReturnType<typeof useGap>)
+    render(<ForYouSection filters={{}} meta={meta} profile={profile(['sql'])} known={['sql']} />)
+    const learn = screen
+      .getByRole('heading', { name: /O que aprender a seguir/ })
+      .closest('section')
+    expect(learn).toHaveTextContent('O que mais pedem as vagas que já pedem algo que você sabe.')
+    expect(learn).toHaveTextContent('% = das 30 vagas que pedem algo que você sabe.')
+  })
+
+  it('falls back to the most requested skills when no job asks for what you know', () => {
+    mockedUseGap.mockReturnValue({
+      data: { ...gap, related_jobs: 0 },
+      isPending: false,
+      isError: false,
+      isFetching: false,
+      isPlaceholderData: false,
+    } as unknown as ReturnType<typeof useGap>)
+    render(<ForYouSection filters={{}} meta={meta} profile={profile(['sql'])} known={['sql']} />)
+    const learn = screen
+      .getByRole('heading', { name: /O que aprender a seguir/ })
+      .closest('section')
+    expect(learn).toHaveTextContent('Nenhuma vaga filtrada pede o que você marcou')
+    expect(learn).toHaveTextContent('% = vagas filtradas que pedem a competência.')
+  })
+
   it('offers the profile of a shared link, and applies it only on a click', () => {
     window.history.replaceState(null, '', '/?level=estagio&perfil=python,excel')
     const current = profile(['sql'])

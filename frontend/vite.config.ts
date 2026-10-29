@@ -165,6 +165,9 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'jsdom',
+      // jsdom is created once per worker, not once per file (most of the run's time), while each
+      // file still gets a fresh window. Tests must not redefine window.location.
+      pool: 'vmThreads',
       include: ['src/**/*.test.{ts,tsx}'], // e2e/ runs under Playwright
       setupFiles: ['./src/test/setup.ts'],
       css: false,

@@ -41,6 +41,10 @@ RawJobFactory = Callable[..., RawJob]
 
 @pytest.fixture
 def raw_job() -> RawJobFactory:
+    return _raw_job_factory()
+
+
+def _raw_job_factory() -> RawJobFactory:
     counter = iter(range(1, 10_000))
 
     def factory(**overrides: Any) -> RawJob:
@@ -64,6 +68,10 @@ def raw_job() -> RawJobFactory:
 
 @pytest.fixture
 def sample_raw_jobs(raw_job: RawJobFactory) -> list[RawJob]:
+    return _sample_raw_jobs(raw_job)
+
+
+def _sample_raw_jobs(raw_job: RawJobFactory) -> list[RawJob]:
     days = [timedelta(days=d) for d in range(0, 42, 3)]  # spread over 6 weeks
     jobs: list[RawJob] = []
     for i, delta in enumerate(days):
@@ -95,6 +103,13 @@ def sample_raw_jobs(raw_job: RawJobFactory) -> list[RawJob]:
     return jobs
 
 
+@pytest.fixture(scope="session")
+def built_sample_dataset() -> Dataset:
+    """Built once per run: the sample is deterministic (fixed clock and inputs), and building it
+    was most of an API test's setup. Tests take `sample_dataset`, their own copy."""
+    return build_dataset(_sample_raw_jobs(_raw_job_factory()), max_age_days=180, now=NOW)
+
+
 @pytest.fixture
-def sample_dataset(sample_raw_jobs: list[RawJob]) -> Dataset:
-    return build_dataset(sample_raw_jobs, max_age_days=180, now=NOW)
+def sample_dataset(built_sample_dataset: Dataset) -> Dataset:
+    return built_sample_dataset.model_copy(deep=True)

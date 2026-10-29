@@ -112,13 +112,25 @@ def test_workplaces_by_area(raw_job: RawJobFactory) -> None:
 
 def test_gap_coverage_and_recommendations(analytics: SkillAnalytics) -> None:
     gap = analytics.gap(JobFilters(), known=["python", "sql"], limit=5)
-    assert gap.total_jobs == 42
+    assert (gap.total_jobs, gap.related_jobs) == (42, 28)
     # estágio: 2/4, júnior dados: 2/5, front-end: 0/5
     assert gap.avg_coverage == pytest.approx((14 * 0.5 + 14 * 0.4) / 42, abs=1e-4)
     assert gap.half_covered == 14
     assert gap.fully_covered == 0
-    assert [item.slug for item in gap.recommendations[:2]] == ["git", "power-bi"]
+    # What the 28 data jobs also ask (ties by name); the front-end jobs ask for neither skill, so
+    # their React or HTML are not suggested.
+    assert [item.slug for item in gap.recommendations] == ["power-bi", "excel", "git", "english"]
+    assert (gap.recommendations[0].count, gap.recommendations[0].share) == (28, 1.0)
     assert {item.slug for item in gap.known} == {"python", "sql"}
+
+
+def test_gap_without_related_jobs_recommends_the_most_requested(
+    analytics: SkillAnalytics,
+) -> None:
+    gap = analytics.gap(JobFilters(), known=["java"], limit=3)
+    assert (gap.total_jobs, gap.related_jobs) == (42, 0)
+    assert [item.slug for item in gap.recommendations] == ["git", "power-bi", "python"]
+    assert all(item.unlocks == 0 for item in gap.recommendations)
 
 
 def test_gap_unlocks_counts_jobs_missing_a_single_skill(analytics: SkillAnalytics) -> None:
@@ -155,6 +167,30 @@ def test_matches_filter_by_missing_count_and_paginate(analytics: SkillAnalytics)
     assert all(item.missing == ["english"] for item in one_away.items)
     # The summary counts do not depend on the `missing` filter (they label the tabs).
     assert (one_away.ready, one_away.one_away) == (14, 14)
+
+
+def test_a_job_sharing_no_skill_is_not_one_away(
+    sample_raw_jobs: list[RawJob], raw_job: RawJobFactory
+) -> None:
+    # A posting that only asks for Tableau is not "one skill away" from Python + SQL: it is not
+    # counted, not listed under missing=1, ranks after every related job and teaches nothing.
+    tableau = raw_job(title="Analista de Dados Júnior", description="Requisitos: Tableau.")
+    analytics = SkillAnalytics(
+        build_dataset([*sample_raw_jobs, tableau], max_age_days=180, now=NOW)
+    )
+    known = ["python", "sql"]
+
+    ranked = analytics.matches(JobFilters(), known=known, missing=None, limit=50, offset=0)
+    assert (ranked.total_jobs, ranked.ready, ranked.one_away) == (43, 0, 0)
+    assert all(item.matched for item in ranked.items[:28])
+    assert not any(item.matched for item in ranked.items[28:])
+    assert ranked.items[28].missing == ["tableau"]
+
+    one_away = analytics.matches(JobFilters(), known=known, missing=1, limit=50, offset=0)
+    assert (one_away.total, one_away.items) == (0, [])
+
+    gap = analytics.gap(JobFilters(), known=known, limit=10)
+    assert "tableau" not in {item.slug for item in gap.recommendations}
 
 
 def test_matches_break_ties_by_matched_skills_then_date(analytics: SkillAnalytics) -> None:

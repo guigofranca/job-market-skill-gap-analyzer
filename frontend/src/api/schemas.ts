@@ -201,6 +201,9 @@ export const WorkplacesSchema = z.object({
 
 export const GapSchema = z.object({
   total_jobs: count,
+  /** Jobs asking for at least one known skill: the recommendations (and their shares) come from
+      them, or from all jobs when there are none. Optional: an API deployed before it lacks it. */
+  related_jobs: count.optional(),
   known: z.array(SkillStatSchema).max(100),
   avg_coverage: share,
   fully_covered: count,
@@ -220,6 +223,9 @@ export const TrendsSchema = z.object({
   skills: z.array(SkillTrendSchema).max(10),
   rising: z.array(SkillTrendSchema).max(10),
   falling: z.array(SkillTrendSchema).max(10),
+  /** Comparable days needed before a change is a trend (the API sends no movers before). An API
+      deployed before this field existed gets the same rule. */
+  min_days: z.number().int().min(2).max(60).default(7),
 })
 
 /** Who can apply, as stated by the posting. */

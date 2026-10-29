@@ -85,12 +85,9 @@ export function Header({
             )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <AiConnect
-              apiBaseUrl={getConfig().apiBaseUrl}
-              buttonClassName={`${HEADER_BUTTON} px-3 py-1.5 text-sm font-medium`}
-            />
+            <AiConnect apiBaseUrl={getConfig().apiBaseUrl} />
             <span className="text-header-muted text-xs max-sm:hidden">
-              Pergunte ao Claude sobre estas vagas
+              Pergunte à sua IA sobre estas vagas
             </span>
           </div>
         </div>

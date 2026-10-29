@@ -4,6 +4,10 @@ name: Collect jobs
 # and commit both.
 # Raw snapshots are never versioned (they hold full descriptions); the Actions cache carries them
 # between runs so "first seen" dates and delisted postings keep working.
+#
+# Two jobs, so the one running third-party code (pip packages, the job boards' responses) never
+# holds a token that can push: `collect` is read-only and hands the two data files over as an
+# artifact; `commit` installs nothing and commits only those two files.
 
 on:
   schedule:
@@ -13,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: collect
@@ -33,6 +37,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
@@ -82,8 +88,38 @@ jobs:
         working-directory: backend
         run: job-analyzer history
 
+      - name: Hand over the data files
+        uses: actions/upload-artifact@v7
+        with:
+          name: data
+          path: |
+            ${{ env.DATASET }}
+            ${{ env.HISTORY }}
+          if-no-files-found: error
+          retention-days: 1
+
+  commit:
+    name: Commit dataset and history
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download the data files
+        uses: actions/download-artifact@v8
+        with:
+          name: data
+          path: ${{ runner.temp }}/data
       - name: Commit dataset and history
         run: |
+          # Only these two files are taken from the artifact, and only if they are valid JSON.
+          src="$RUNNER_TEMP/data"
+          for file in dataset.json history.json; do
+            jq empty "$src/$file"
+            cp -- "$src/$file" "backend/data/processed/$file"
+          done
           git add -- "$DATASET" "$HISTORY"
           if git diff --cached --quiet; then
             echo "Nothing changed."

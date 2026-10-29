@@ -8,6 +8,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { Trends } from '../../api/schemas'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { formatDate, formatDayMonth, formatNumber, formatPercent } from '../../lib/format'
 import { TooltipBox, TooltipRow } from './ChartTooltip'
 import { AXIS_TICK, shareAxis, spreadLabels, type TooltipState } from './chartData'
@@ -15,15 +16,17 @@ import { AXIS_TICK, shareAxis, spreadLabels, type TooltipState } from './chartDa
 const HEIGHT = 260
 const MARGIN_TOP = 8
 const X_AXIS_HEIGHT = 24
-/** Room on the right for the end-of-line labels. */
+/** Room on the right for the end-of-line labels: name and value, or the value alone. */
 const LABEL_WIDTH = 132
+const VALUE_LABEL_WIDTH = 52
 const LABEL_GAP = 16
 
 type Row = Record<string, number | string>
 
 /**
  * Share of the filtered jobs asking for each skill, per collection day. Few lines (4), each
- * labeled at its end, so identity never rests on color alone.
+ * labeled at its end. On phones the names would be cut to a few letters, so the end labels keep
+ * only the value, with the legend above naming the lines (and the tooltip and table as ever).
  */
 export function SkillTrendChart({
   data,
@@ -32,6 +35,8 @@ export function SkillTrendChart({
   data: Trends
   colors: ReadonlyMap<string, string>
 }) {
+  const named = useMediaQuery('(min-width: 640px)')
+  const labelWidth = named ? LABEL_WIDTH : VALUE_LABEL_WIDTH
   const rows: Row[] = data.days.map((day, index) => {
     const row: Row = { day: day.day, jobs: day.jobs }
     for (const skill of data.skills) {
@@ -57,7 +62,7 @@ export function SkillTrendChart({
       style={{ height: HEIGHT }}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: MARGIN_TOP, right: LABEL_WIDTH, bottom: 0, left: 0 }}>
+        <LineChart data={rows} margin={{ top: MARGIN_TOP, right: labelWidth, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--grid)" />
           <XAxis
             dataKey="day"
@@ -102,7 +107,7 @@ export function SkillTrendChart({
       <ul
         aria-hidden
         className="pointer-events-none absolute top-0 right-0"
-        style={{ width: LABEL_WIDTH - 8, height: HEIGHT }}
+        style={{ width: labelWidth - 8, height: HEIGHT }}
       >
         {data.skills.map((skill, index) => (
           <li
@@ -114,7 +119,7 @@ export function SkillTrendChart({
               className="h-0.5 w-2.5 shrink-0 rounded"
               style={{ background: colors.get(skill.slug) ?? 'var(--axis-text)' }}
             />
-            <span className="truncate">{skill.name}</span>
+            {named && <span className="truncate">{skill.name}</span>}
             <span className="text-muted tabular-nums">
               {formatPercent(skill.points.at(-1)?.share ?? 0)}
             </span>

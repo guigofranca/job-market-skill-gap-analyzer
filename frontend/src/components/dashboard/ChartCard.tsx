@@ -21,6 +21,8 @@ interface ChartCardProps {
   /** Accessible table twin of the chart (every value reachable without hover or color). */
   table?: ReactNode
   legend?: ReactNode
+  /** Controls of the chart itself (e.g. which area to show), kept visible in every state. */
+  toolbar?: ReactNode
   loadingHeight?: number
   /** Fill the parent's height (a flex column): the chart takes the extra room. */
   grow?: boolean
@@ -41,6 +43,7 @@ export function ChartCard({
   emptyHint = 'Tente remover algum filtro.',
   table,
   legend,
+  toolbar,
   loadingHeight = 280,
   grow = false,
   className = '',
@@ -96,6 +99,7 @@ export function ChartCard({
           </fieldset>
         )}
       </header>
+      {toolbar}
       {legend && hasData && !isEmpty && view === 'chart' && legend}
       {body}
       {query.isError && !isEmpty && (

@@ -1,6 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query'
 import type { Summary } from '../../api/schemas'
-import { formatDecimal, formatNumber, formatPercent } from '../../lib/format'
+import { formatNumber, formatPercent } from '../../lib/format'
 import { ErrorState } from '../feedback/States'
 
 interface KpiTilesProps {
@@ -9,13 +9,20 @@ interface KpiTilesProps {
   selectedSkillName: string | undefined
 }
 
+/** Two columns on phones (the last tile takes a full row), three side by side from lg. */
+const GRID = 'grid grid-cols-2 gap-3 lg:grid-cols-3'
+const LAST = 'col-span-2 lg:col-span-1'
+
 /** Stat tiles: label, value (proportional figures), one line of context. */
 export function KpiTiles({ query, totalJobs, selectedSkillName }: KpiTilesProps) {
   if (query.isPending) {
     return (
-      <output className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Carregando indicadores">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="card bg-surface-2 h-28 animate-pulse" />
+      <output className={GRID} aria-label="Carregando indicadores">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div
+            key={index}
+            className={`card bg-surface-2 h-28 animate-pulse ${index === 2 ? LAST : ''}`}
+          />
         ))}
       </output>
     )
@@ -31,7 +38,7 @@ export function KpiTiles({ query, totalJobs, selectedSkillName }: KpiTilesProps)
 
   return (
     <div
-      className={`grid grid-cols-2 gap-3 transition-opacity lg:grid-cols-4 ${dimmed ? 'opacity-50' : ''}`}
+      className={`${GRID} transition-opacity ${dimmed ? 'opacity-50' : ''}`}
       aria-busy={query.isFetching}
     >
       <Tile
@@ -51,22 +58,28 @@ export function KpiTiles({ query, totalJobs, selectedSkillName }: KpiTilesProps)
         }
       />
       <Tile
-        label="Competências por vaga"
-        value={formatDecimal(summary.avg_skills_per_job)}
-        hint={`${formatNumber(summary.distinct_skills)} tecnologias distintas citadas`}
-      />
-      <Tile
         label="Estágio · Júnior"
         value={`${formatNumber(levelCount('estagio'))} · ${formatNumber(levelCount('junior'))}`}
         hint="vagas encontradas por nível"
+        className={LAST}
       />
     </div>
   )
 }
 
-function Tile({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Tile({
+  label,
+  value,
+  hint,
+  className = '',
+}: {
+  label: string
+  value: string
+  hint: string
+  className?: string
+}) {
   return (
-    <div className="card flex min-w-0 flex-col gap-1 p-4">
+    <div className={`card flex min-w-0 flex-col gap-1 p-4 ${className}`}>
       <span className="text-muted truncate text-xs font-medium sm:text-sm" title={label}>
         {label}
       </span>

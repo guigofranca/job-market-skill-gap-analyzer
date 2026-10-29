@@ -143,11 +143,21 @@ class WorkplacesResponse(_Model):
 
 
 class GapRecommendation(SkillStat):
-    unlocks: int = Field(ge=0, description="Jobs fully covered once this single skill is learned")
+    unlocks: int = Field(
+        ge=0,
+        description="Related jobs fully covered once this single skill is learned",
+    )
 
 
 class GapResponse(_Model):
     total_jobs: int = Field(description="Jobs in the filter that list at least one skill")
+    related_jobs: int = Field(
+        ge=0,
+        description=(
+            "Jobs asking for at least one known skill. Recommendations, and their count and "
+            "share, are among them (among all jobs when there are none)"
+        ),
+    )
     known: list[SkillStat]
     avg_coverage: Share
     fully_covered: int
@@ -178,6 +188,10 @@ class TrendsResponse(_Model):
     skills: list[SkillTrend] = Field(description="Most requested on the last day")
     rising: list[SkillTrend]
     falling: list[SkillTrend]
+    min_days: int = Field(
+        ge=2,
+        description="Comparable days needed before a change counts as a trend (no movers before)",
+    )
 
 
 class JobItem(_Model):
@@ -230,7 +244,9 @@ class MatchItem(JobItem):
 class MatchesResponse(_Model):
     total_jobs: int = Field(description="Jobs in the filter that list at least one skill")
     ready: int = Field(description="Jobs whose every listed skill is in the profile")
-    one_away: int = Field(description="Jobs missing exactly one skill")
+    one_away: int = Field(
+        description="Jobs missing exactly one skill, among those sharing one with the profile"
+    )
     total: int = Field(description="Jobs matching the `missing` filter (paginated below)")
     ineligible: int = Field(
         default=0, description="Jobs in the filter with a conflict (counted before hiding them)"

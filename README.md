@@ -36,7 +36,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   o passo a passo.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 402 testes no backend (pytest, 95% de cobertura) e 155 no frontend (Vitest),
+- **Qualidade**: 408 testes no backend (pytest, 95% de cobertura) e 171 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -94,7 +94,7 @@ Portuguese.
 
 **Frontend (React + Tailwind + Recharts)**
 
-![Aba Mercado do dashboard: indicadores, competências mais exigidas, categorias, modalidade, estados e Estágio × Júnior](docs/dashboard-mercado.png)
+![Aba Mercado do dashboard: indicadores, aviso de áreas misturadas, competências mais exigidas, estados, modalidade e Estágio × Júnior dentro de uma área](docs/dashboard-mercado.png)
 
 - Três abas (a aba ativa também vai para a URL, `?aba=mercado`):
   - **Vagas** (padrão), para quem procura emprego, num fluxo só:
@@ -106,16 +106,18 @@ Portuguese.
        **compartilhado por link** (`?perfil=python,sql`): quem abre vê a oferta e aplica com um
        clique. No celular, o perfil fica recolhido numa linha para as vagas aparecerem logo;
     2. **Uma única lista de vagas** — sem perfil, as mais recentes; com perfil, ordenadas pelo que
-       falta, com abas *Prontas para aplicar*, *Falta 1 competência* e *Todas*, o que você já tem
+       falta, com abas *Prontas para aplicar*, *Falta 1 competência* e *Todas* (uma vaga que não
+       pede nada do que você sabe nunca conta como "falta 1" e vai para o fim), o que você já tem
        (✓) e o que falta em cada anúncio, busca por título e paginação. Vagas publicadas e
        encontradas desde a sua última visita ganham a etiqueta **Nova para você** e podem ser
        listadas sozinhas. Vagas cujo anúncio você abriu mostram **vista há 3 horas** e podem ser
        ocultadas ou listadas sozinhas (guardado só neste navegador, por 30 dias). Os benefícios
        citados no anúncio aparecem numa linha discreta (vale-refeição, plano de saúde,
        Gympass...), nunca o texto do anúncio;
-    3. **O que aprender a seguir** — cobertura média e as competências que mais aproximam você das
-       vagas (com quantas vagas cada uma deixa "prontas"; sem perfil, as mais pedidas nas vagas
-       filtradas), cada uma com **onde aprender grátis**
+    3. **O que aprender a seguir** — o que mais pedem as vagas que já pedem algo que você sabe
+       (Python + SQL leva ao que as vagas de dados pedem, não às competências de suporte), com
+       quantas vagas cada uma deixa "prontas"; sem perfil, as mais pedidas nas vagas filtradas.
+       Cada uma vem com **onde aprender grátis**
        (curso ou documentação oficial, em português quando existe); o botão
        *Já sei* adiciona ao perfil.
 
@@ -129,8 +131,14 @@ Portuguese.
     ser **exportada e importada** (backup em JSON, validado item a item) e os prazos vão para o
     calendário (Google Agenda, Outlook, celular) num arquivo **.ics**, com lembrete na véspera.
   - **Mercado**, para entender o que as vagas filtradas pedem: KPIs, ranking de competências (clique numa barra para
-    filtrar), categorias, comparação **Estágio × Júnior** e **tendência** (participação das
-    competências por dia de coleta, vagas abertas por dia, e o que está em alta ou em queda).
+    filtrar), estados, modalidade, comparação **Estágio × Júnior** e **tendência** (participação
+    das competências por dia de coleta, vagas abertas por dia, e o que está em alta ou em queda).
+    Sem filtro de área, um aviso diz que as quatro áreas estão misturadas (a maior puxa os
+    números) e aponta para o filtro *Área*. Estágio × Júnior compara **dentro de uma área**:
+    os níveis têm misturas de áreas diferentes (a maioria das vagas júnior é de suporte), e
+    somando as áreas a comparação engana (em Dados, júnior pede SQL muito mais que estágio;
+    somando tudo, parece o contrário). Áreas com menos de 10 vagas aparecem esmaecidas no
+    gráfico de modalidade.
 - Filtros sincronizados com a URL — qualquer visão pode ser compartilhada como link. Sempre
   visíveis: nível, área, estado e modalidade; em **Mais filtros**: cidade, **inclusão** (vagas que
   aceitam PcD e vagas afirmativas para PcD, mulheres, pessoas negras, indígenas, LGBTQIAPN+ e
@@ -380,6 +388,7 @@ Processamento
 | **Integridade de dados** | Escrita atômica (arquivo temporário + `os.replace`), proteção contra *path traversal*, limites de tamanho de resposta HTTP e de arquivo. |
 | **Contêineres** | Usuário não-root, nginx *unprivileged*, sistema de arquivos somente leitura, `no-new-privileges`, `cap_drop: ALL`, portas ligadas só em `127.0.0.1`. |
 | **Dependências** | Versões com faixas no `pyproject.toml`/`package.json` + lockfile npm; `pip-audit` e `npm audit` no CI e alertas de vulnerabilidade do GitHub. |
+| **GitHub Actions** | Token somente leitura por padrão. A coleta diária roda em dois jobs: o que instala pacotes e fala com as fontes não tem permissão de escrita; o que faz o commit não instala nada e só aceita os dois arquivos de dados (JSON válido). Action de terceiros (gitleaks) fixada por commit. CodeQL (Python, TypeScript e Actions) e varredura de segredos com *push protection* ativos no repositório. |
 | **Código** | Tipagem estrita (`mypy --strict`, TypeScript `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), `ruff` (inclui regras de segurança `bandit`), `oxlint` (inclui `jsx-a11y`), Prettier, EditorConfig. |
 
 ---
@@ -507,14 +516,14 @@ retornam **422**.
 | `GET /api/v1/meta` | Opções de filtro, lista de skills e período coberto | — |
 | `GET /api/v1/summary` | KPIs, distribuição por nível/área/fonte/categoria | — |
 | `GET /api/v1/skills/top` | Ranking de competências (com `skill`: as que aparecem junto) | `category`, `limit` (1–50) |
-| `GET /api/v1/skills/compare-levels` | Estágio × Júnior por competência | `limit` (1–30) |
+| `GET /api/v1/skills/compare-levels` | Estágio × Júnior por competência (use com `area`: sem ela, a diferença reflete a mistura de áreas de cada nível) | `limit` (1–30) |
 | `GET /api/v1/locations` | Vagas por estado; com `state`, pelas cidades do estado (ignora o filtro de cidade) | `limit` (1–30) |
 | `GET /api/v1/workplaces` | Remoto, híbrido e presencial por área (ignora área e modalidade) | — |
-| `GET /api/v1/skills/gap` | Cobertura do perfil e recomendações | `known=python,sql` (obrigatório), `limit` |
-| `GET /api/v1/trends` | Vagas por dia e participação das competências ao longo do tempo (histórico diário; só `level` e `area`) | `days` (2–365), `limit` (1–10) |
+| `GET /api/v1/skills/gap` | Cobertura do perfil e recomendações, tiradas das vagas que pedem ao menos uma competência do perfil (`related_jobs`; de todas, quando nenhuma pede) | `known=python,sql` (obrigatório), `limit` |
+| `GET /api/v1/trends` | Vagas por dia e participação das competências ao longo do tempo (histórico diário; só `level` e `area`). Em alta / em queda só a partir de `min_days` (7) dias comparáveis, com ao menos 10 vagas e 1 p.p. de variação | `days` (2–365), `limit` (1–10) |
 | `GET /api/v1/skills/patterns` | Regras de extração de competências, para ler um currículo no navegador | — |
 | `GET /api/v1/jobs` | Vagas paginadas, mais recentes primeiro | `q` (busca no título, ignora acentos e maiúsculas; "estagio" acha "Estagiário", "junior" acha "Jr"), `ids` (até 200 ids: só essas vagas, ex. as salvas ou as já vistas), `exclude` (até 200 ids: oculta essas vagas, ex. as já vistas), `limit`, `offset` |
-| `GET /api/v1/jobs/matches` | Vagas ordenadas pela compatibilidade com um perfil (menos competências faltando primeiro) | `known=python,sql` (obrigatório), `missing` (0 = prontas, 1 = falta uma), `q` (busca no título, ignora acentos e maiúsculas; "estagio" acha "Estagiário", "junior" acha "Jr"), `ids`, `exclude`, `limit`, `offset` |
+| `GET /api/v1/jobs/matches` | Vagas ordenadas pela compatibilidade com um perfil (menos competências faltando primeiro) | `known=python,sql` (obrigatório), `missing` (0 = prontas, 1 = falta uma; só entre as vagas que pedem ao menos uma competência do perfil, que vêm antes das outras), `q` (busca no título, ignora acentos e maiúsculas; "estagio" acha "Estagiário", "junior" acha "Jr"), `ids`, `exclude`, `limit`, `offset` |
 
 Exemplo:
 
@@ -533,12 +542,17 @@ API REST, então o projeto não paga nada de IA.
 
 **Endereço:** `https://job-market-skill-gap-analyzer.vercel.app/mcp` (Streamable HTTP, sem login)
 
-No dashboard, o botão **Usar com IA** (no topo) mostra esse endereço com botão de copiar, o passo a
-passo no Claude e exemplos de perguntas; o endereço vem de `VITE_API_BASE_URL`.
+No dashboard, o botão **Usar com IA** (no topo) vem com os logos do ChatGPT, do Claude e do
+Cursor: cada um abre o passo a passo daquele assistente, com o endereço para copiar e exemplos de
+perguntas; o endereço vem de `VITE_API_BASE_URL`.
 
-- **Claude Code:** `claude mcp add --transport http empregos https://job-market-skill-gap-analyzer.vercel.app/mcp`
+- **ChatGPT (site, planos pagos):** ative o *modo de desenvolvedor* nas configurações e adicione um
+  servidor MCP personalizado com esse endereço, sem autenticação.
 - **Claude (web ou desktop):** em *Configurações → Conectores*, adicione um conector personalizado
   com esse endereço.
+- **Claude Code:** `claude mcp add --transport http empregos https://job-market-skill-gap-analyzer.vercel.app/mcp`
+- **Cursor:** botão *Adicionar ao Cursor* no dashboard, ou `"empregos": { "url": "<endereço>" }`
+  em `mcpServers` no `~/.cursor/mcp.json`.
 - **Outros clientes:** qualquer um que aceite servidores MCP remotos por HTTP.
 - **Localmente:** `http://127.0.0.1:8000/mcp`, com a API rodando.
 
@@ -554,7 +568,7 @@ passo no Claude e exemplos de perguntas; o endereço vem de `VITE_API_BASE_URL`.
 | `search_jobs` | Vagas filtradas, mais recentes primeiro, com link, prazo, salário (quando informado) e competências |
 | `analyze_profile` | Compara as competências de uma pessoa com as vagas: quantas estão prontas para aplicar, as vagas ordenadas pelo que falta e o que aprender a seguir |
 | `top_skills` | Competências mais exigidas no filtro |
-| `compare_levels` | Estágio × Júnior por competência |
+| `compare_levels` | Estágio × Júnior por competência, dentro de uma área (`area` obrigatória) |
 
 **Segurança:** todas as ferramentas são somente leitura e validam os argumentos com as mesmas
 regras da API REST (enums, limites numéricos e de tamanho, slugs conhecidos); argumentos com nome
@@ -569,13 +583,13 @@ descrições. Para desligar: `API_ENABLE_MCP=false`.
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 402 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+pytest --cov                 # 408 testes: skills, classificação, limpeza, fontes (HTTP mockado),
                              # cliente HTTP, storage, analytics, API, servidor MCP e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (155 testes)
+npm test                     # Vitest + Testing Library (171 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
@@ -652,10 +666,12 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
   [Deploy na Vercel](#deploy-na-vercel)).
 - **Vagas encerradas**: as que passam do prazo de inscrição somem na hora (pelo horário de
   Brasília), mesmo antes da próxima coleta; vagas retiradas pela fonte saem na coleta seguinte.
-- **Tendência**: o histórico diário começa em 14/10/2026, mas a série parte de 27/10/2026,
-  quando os cargos de entrada sem "júnior" no título passaram a contar (antes disso, o total de
-  vagas não é comparável; a Remotar já tinha saído das fontes em 15/10/2026). O histórico é
-  agregado por nível × área, então a tendência ignora os outros filtros.
+- **Tendência**: o histórico diário começa em 14/10/2026, mas a série parte de 26/10/2026,
+  a primeira coleta que contou os cargos de entrada sem "júnior" no título (antes disso, o total
+  de vagas não é comparável; a Remotar já tinha saído das fontes em 15/10/2026). O gráfico e o
+  "em alta / em queda" só aparecem com 7 dias comparáveis: antes disso, a variação de um dia para
+  o outro é só vaga entrando e saindo. O histórico é agregado por nível × área, então a
+  tendência ignora os outros filtros.
 - Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
 
 ---

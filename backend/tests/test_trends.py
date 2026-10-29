@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from job_analyzer.analytics.trends import skill_trends
+from job_analyzer.analytics.trends import COMPARABLE_SINCE, skill_trends
 from job_analyzer.api.app import create_app
 from job_analyzer.config import Settings
 from job_analyzer.models import Area, Dataset, History, HistoryPoint, Level
@@ -72,9 +72,29 @@ def test_jobs_per_day_and_top_skills_of_the_last_day(history: History) -> None:
 
 
 def test_rising_and_falling_skills(history: History) -> None:
-    trends = skill_trends(history, days=30, limit=5)
-    assert [skill.slug for skill in trends.rising] == ["python", "excel"]
+    trends = skill_trends(history, days=30, limit=5, min_days=3)
+    # Excel moved too, but never had 10 jobs: not enough to call it a trend.
+    assert [skill.slug for skill in trends.rising] == ["python"]
     assert [skill.slug for skill in trends.falling] == ["sql"]
+
+
+def test_movers_wait_for_enough_comparable_days(history: History) -> None:
+    trends = skill_trends(history, days=30, limit=5)
+    assert trends.min_days == 7
+    assert len(trends.days) == 3
+    assert trends.rising == trends.falling == []
+    # The chart data is still served: the client decides what to show.
+    assert [skill.slug for skill in trends.skills] == ["python", "excel", "sql"]
+
+
+def test_movers_need_a_change_of_a_percentage_point() -> None:
+    points = [
+        _point(0, _segment(Level.JUNIOR, Area.DADOS, 1000, {"sql": 200, "python": 100})),
+        _point(1, _segment(Level.JUNIOR, Area.DADOS, 1000, {"sql": 210, "python": 105})),
+    ]
+    trends = skill_trends(History(points=points), days=30, limit=5, min_days=2)
+    # SQL: +1.0 p.p. counts; Python: +0.5 p.p. does not.
+    assert [skill.slug for skill in trends.rising] == ["sql"]
 
 
 def test_level_filter_and_window(history: History) -> None:
@@ -95,6 +115,16 @@ def test_days_before_a_source_change_are_left_out(history: History) -> None:
     trends = skill_trends(History(points=[before, *history.points]), days=365, limit=5)
     assert trends.days[0].day == FIRST_DAY
     assert skill_trends(History(points=[before]), days=365, limit=5).days == []
+
+
+def test_the_series_starts_on_the_first_comparable_day() -> None:
+    first = (COMPARABLE_SINCE - FIRST_DAY).days
+    points = [
+        _point(first - 1, _segment(Level.JUNIOR, Area.DADOS, 345, {"sql": 50})),
+        _point(first, _segment(Level.JUNIOR, Area.DADOS, 558, {"sql": 80})),
+    ]
+    trends = skill_trends(History(points=points), days=30, limit=5)
+    assert [day.day for day in trends.days] == [COMPARABLE_SINCE]
 
 
 def test_movers_need_two_days_and_enough_jobs(history: History) -> None:
@@ -125,7 +155,8 @@ def test_trends_endpoint(client: TestClient) -> None:
     body = client.get("/api/v1/trends", params={"level": "estagio", "limit": 2}).json()
     assert [day["jobs"] for day in body["days"]] == [20, 20, 25]
     assert [skill["slug"] for skill in body["skills"]] == ["python", "sql"]
-    assert body["falling"][0]["slug"] == "sql"
+    # Three days are not a trend yet.
+    assert (body["min_days"], body["rising"], body["falling"]) == (7, [], [])
 
 
 @pytest.mark.parametrize(

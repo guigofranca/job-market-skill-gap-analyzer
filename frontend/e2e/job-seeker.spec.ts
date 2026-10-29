@@ -63,6 +63,13 @@ test('"Usar com IA" gives the address of a working MCP server', async ({ page })
   await page.keyboard.press('Escape')
   await expect(box).toBeHidden()
   await expect(page.getByRole('button', { name: 'Usar com IA' })).toBeFocused()
+
+  // Each assistant's logo opens the box on its own steps.
+  await page.getByRole('button', { name: 'Usar com Cursor' }).click()
+  await expect(box.getByRole('tab', { name: 'Cursor' })).toHaveAttribute('aria-selected', 'true')
+  await expect(box.getByRole('button', { name: 'Adicionar ao Cursor' })).toBeVisible()
+  await expectNoHorizontalScroll(page)
+  await expectAccessible(page)
 })
 
 test('a profile ranks the jobs and says what is missing and where to learn it', async ({
@@ -153,11 +160,30 @@ test('an opened posting is marked as seen and can be hidden or listed alone', as
 test('the market tab shows the charts', async ({ page }) => {
   await page.getByRole('tab', { name: 'Mercado' }).click()
   await expect(page).toHaveURL(/aba=mercado/)
-  await expect(page.getByRole('heading', { name: 'Categorias de competência' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Estágio × Júnior: o que muda' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Competências mais exigidas/ })).toBeVisible()
   await expect(page.getByRole('heading', { name: /^Tendência/ })).toBeVisible()
   const workplaces = page.getByRole('figure', { name: /Modalidade de trabalho/ })
   await expect(workplaces.getByText('Todas as áreas')).toBeVisible()
+  // Estágio × Júnior compares inside one area, chosen in the card while no area is filtered.
+  await expect(page.getByRole('heading', { name: 'Estágio × Júnior: o que muda' })).toBeVisible()
+  await expect(page.getByRole('group', { name: 'Comparar em' })).toBeVisible()
+  await expectNoHorizontalScroll(page)
+  await expectAccessible(page)
+
+  // Without an area the tab says the areas are mixed and points to the Área filter, the one
+  // control for it (phones fold the filters behind a button).
+  const notice = page.getByRole('complementary', { name: 'Áreas misturadas' })
+  await expect(notice).toContainText('Escolha uma área nos filtros acima')
+  const panel = page.getByRole('button', { name: /^Filtros/ })
+  if (await panel.isVisible()) await panel.click()
+  await page
+    .getByRole('search', { name: 'Filtros' })
+    .getByLabel('Área', { exact: true })
+    .selectOption('dados')
+  await expect(page).toHaveURL(/area=dados/)
+  await expect(notice).toBeHidden()
+  await expect(page.getByRole('group', { name: 'Comparar em' })).toBeHidden()
+  await expect(page.getByText(/^Dados: % das /)).toBeVisible()
 
   // A click on a state filters the dashboard and lists that state's cities.
   const states = page.getByRole('figure', { name: 'Ranking dos estados com mais vagas' })

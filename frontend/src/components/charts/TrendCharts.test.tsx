@@ -1,5 +1,5 @@
 import { render, renderHook, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Trends } from '../../api/schemas'
 import { useSkillColors } from '../../hooks/useSkillColors'
 import { SkillTrendChart } from './TrendCharts'
@@ -33,17 +33,39 @@ const data: Trends = {
   ],
   rising: [],
   falling: [],
+  min_days: 2,
 }
 
+const colors = new Map([
+  ['sql', 'var(--series-1)'],
+  ['python', 'var(--series-2)'],
+])
+
 describe('SkillTrendChart', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('labels each line at its end with the latest share', () => {
-    const colors = new Map([
-      ['sql', 'var(--series-1)'],
-      ['python', 'var(--series-2)'],
-    ])
     render(<SkillTrendChart data={data} colors={colors} />)
     expect(screen.getByText('SQL').parentElement).toHaveTextContent('SQL27%')
     expect(screen.getByText('Python').parentElement).toHaveTextContent('Python19%')
+  })
+
+  it('keeps only the values at the line ends on phones (the legend names the lines)', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn<() => void>(),
+        removeEventListener: vi.fn<() => void>(),
+      })),
+    )
+    render(<SkillTrendChart data={data} colors={colors} />)
+    expect(screen.queryByText('SQL')).not.toBeInTheDocument()
+    expect(screen.getByText('27%')).toBeInTheDocument()
+    expect(screen.getByText('19%')).toBeInTheDocument()
   })
 })
 

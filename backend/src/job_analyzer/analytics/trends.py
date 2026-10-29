@@ -15,11 +15,16 @@ from job_analyzer.processing.skills import SKILLS_BY_SLUG
 
 # Days collected with other sources or scope rules are not comparable: Remotar was retired on
 # 2026-10-15 (a market drop that wasn't), and entry-level titles without "júnior" ("Assistente
-# de TI", "Analista de Dados I") count from 2026-10-27 (a jump that wasn't). Move this date when
-# either changes.
-COMPARABLE_SINCE = date(2026, 10, 27)
-# A skill moves the needle only if enough jobs ask for it: 1 -> 2 jobs is not a trend.
-MIN_MOVER_COUNT = 5
+# de TI", "Analista de Dados I") count from the 2026-10-26 collection (a jump that wasn't). Move
+# this date when either changes.
+COMPARABLE_SINCE = date(2026, 10, 26)
+# Fewer comparable days than this show no movers: a few jobs coming and going from one day to the
+# next is noise, not a trend.
+MIN_TREND_DAYS = 7
+# A skill moves the needle only if enough jobs ask for it (8 -> 6 jobs is not a trend) and its
+# share moved by at least one percentage point.
+MIN_MOVER_COUNT = 10
+MIN_MOVER_CHANGE = 0.01
 MAX_MOVERS = 5
 
 
@@ -30,9 +35,10 @@ def skill_trends(
     area: Area | None = None,
     days: int,
     limit: int,
+    min_days: int = MIN_TREND_DAYS,
 ) -> TrendsResponse:
     """The last `days` days of history (up to its newest point) for one level/area slice."""
-    empty = TrendsResponse(days=[], skills=[], rising=[], falling=[])
+    empty = TrendsResponse(days=[], skills=[], rising=[], falling=[], min_days=min_days)
     if not history.points:
         return empty
     start = max(history.points[-1].day - timedelta(days=days - 1), COMPARABLE_SINCE)
@@ -78,14 +84,17 @@ def skill_trends(
         if slug in SKILLS_BY_SLUG and max(first[slug], last[slug]) >= MIN_MOVER_COUNT
     }
     movers = sorted(
-        (trend(slug) for slug in candidates) if len(series) > 1 else (),
+        (trend(slug) for slug in candidates) if len(series) >= max(min_days, 2) else (),
         key=lambda item: (-item.change, item.name),
     )
     return TrendsResponse(
         days=[TrendDay(day=day, jobs=jobs) for day, jobs, _ in series],
         skills=[trend(slug) for slug in top],
-        rising=[item for item in movers if item.change > 0][:MAX_MOVERS],
-        falling=[item for item in reversed(movers) if item.change < 0][:MAX_MOVERS],
+        rising=[item for item in movers if item.change >= MIN_MOVER_CHANGE][:MAX_MOVERS],
+        falling=[item for item in reversed(movers) if item.change <= -MIN_MOVER_CHANGE][
+            :MAX_MOVERS
+        ],
+        min_days=min_days,
     )
 
 

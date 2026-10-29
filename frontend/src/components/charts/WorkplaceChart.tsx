@@ -9,6 +9,8 @@ type Row = Workplaces['items'][number]
 
 /** A segment narrower than this keeps its value in the tooltip and the table only. */
 const MIN_LABELED_SHARE = 0.12
+/** A row with fewer jobs is drawn faint and unlabeled: one posting moves its shares a lot. */
+const MIN_ROW_JOBS = 10
 
 /**
  * 100% stacked bars, one per area (plus all areas together on top): each bar splits the jobs
@@ -16,6 +18,7 @@ const MIN_LABELED_SHARE = 0.12
  */
 export function WorkplaceChart({ data, grow = false }: { data: Workplaces; grow?: boolean }) {
   const [active, setActive] = useState<string | null>(null)
+  const anySmall = data.items.some((row) => row.total < MIN_ROW_JOBS)
 
   return (
     <figure
@@ -46,15 +49,24 @@ export function WorkplaceChart({ data, grow = false }: { data: Workplaces; grow?
           </div>
         )
       })}
+      {anySmall && (
+        <figcaption className="text-muted mt-1 px-1 text-xs">
+          Barras claras: menos de {MIN_ROW_JOBS} vagas, poucas para tirar conclusões.
+        </figcaption>
+      )}
     </figure>
   )
 }
 
 function StackedBar({ row }: { row: Row }) {
   const shares = new Map(row.workplaces.map((item) => [item.key, item.share]))
+  const small = row.total < MIN_ROW_JOBS
   return (
     // 2px surface gaps between segments; the outer ends carry the 4px data-end radius.
-    <div aria-hidden className="flex h-6 gap-0.5 overflow-hidden rounded">
+    <div
+      aria-hidden
+      className={`flex h-6 gap-0.5 overflow-hidden rounded ${small ? 'opacity-40' : ''}`}
+    >
       {WORKPLACE_SERIES.map((series) => {
         const share = shares.get(series.key) ?? 0
         if (share === 0) return null
@@ -64,7 +76,7 @@ function StackedBar({ row }: { row: Row }) {
             className="flex items-center justify-center text-xs font-semibold tabular-nums"
             style={{ width: `${share * 100}%`, background: series.color, color: series.text }}
           >
-            {share >= MIN_LABELED_SHARE && formatPercent(share)}
+            {!small && share >= MIN_LABELED_SHARE && formatPercent(share)}
           </div>
         )
       })}

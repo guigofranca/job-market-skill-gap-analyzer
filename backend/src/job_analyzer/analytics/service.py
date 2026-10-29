@@ -382,7 +382,10 @@ class SkillAnalytics:
         return TopSkillsResponse(total_jobs=len(jobs), items=stats[:limit])
 
     def compare_levels(self, filters: JobFilters, *, limit: int) -> LevelComparisonResponse:
-        """Top skills of the filter, with their share among Estágio and among Júnior postings."""
+        """Top skills of the filter, with their share among Estágio and among Júnior postings.
+
+        Meant to compare inside one area: the levels have different area mixes (most Júnior
+        postings are support), so across areas the differences mostly show that mix."""
         jobs = self.filter(replace(filters, level=None))
         skills = self._skills_of(jobs)
         totals = {level: int((jobs["level"] == level.value).sum()) for level in Level}
@@ -450,7 +453,10 @@ class SkillAnalytics:
         """How well a set of known skills covers the market, and what to learn next.
 
         coverage(job) = |known ∩ required| / |required|, over jobs that list at least one skill.
-        `unlocks` counts the jobs whose only missing requirement is that skill.
+        Recommendations come from the related jobs, the ones asking for at least one known skill
+        (from all jobs when none does): Python + SQL leads to what data jobs also ask, not to the
+        skills of support postings that ask for neither. `unlocks` counts the related jobs whose
+        only missing requirement is that skill.
         """
         jobs = self.filter(filters)
         jobs = jobs[jobs["skill_count"] > 0]
@@ -466,6 +472,7 @@ class SkillAnalytics:
         if total == 0:
             return GapResponse(
                 total_jobs=0,
+                related_jobs=0,
                 known=known_stats,
                 avg_coverage=0.0,
                 fully_covered=0,
@@ -473,22 +480,26 @@ class SkillAnalytics:
                 recommendations=[],
             )
 
-        coverage = (
-            jobs["skill_set"].map(lambda required: len(required & known_set)) / jobs["skill_count"]
-        )
+        matched = jobs["skill_set"].map(lambda required: len(required & known_set))
+        related = jobs[matched > 0]
+        coverage = matched / jobs["skill_count"]
         missing = jobs["skill_set"].map(lambda required: required - known_set)
         missing_count = missing.map(len)
         unlocks = (
-            missing[missing_count == 1].map(lambda remaining: next(iter(remaining))).value_counts()
+            missing[(missing_count == 1) & (matched > 0)]
+            .map(lambda remaining: next(iter(remaining)))
+            .value_counts()
         )
 
+        pool = related if len(related) else jobs
         recommendations = [
             GapRecommendation(**stat.model_dump(), unlocks=int(unlocks.get(stat.slug, 0)))
-            for stat in demand
+            for stat in _skill_stats(self._skills_of(pool), len(pool))
             if stat.slug not in known_set
         ][:limit]
         return GapResponse(
             total_jobs=total,
+            related_jobs=len(related),
             known=known_stats,
             avg_coverage=round(float(coverage.mean()), 4),
             fully_covered=int((missing_count == 0).sum()),
@@ -547,8 +558,10 @@ class SkillAnalytics:
 
         Order: fewest missing skills first ("ready to apply" on top), then the highest coverage,
         then the most matched skills (5 of 5 is stronger evidence than 1 of 1), then the most
-        recent. Jobs without any detected skill cannot be assessed and are left out.
-        `missing` keeps only the jobs lacking exactly that many skills. With a candidate profile,
+        recent. Jobs sharing no skill with the profile come after all the others: a posting that
+        only asks for Hardware is not "one skill away" from Python + SQL. Jobs without any
+        detected skill cannot be assessed and are left out. `missing` keeps only the jobs lacking
+        exactly that many skills, among those sharing at least one. With a candidate profile,
         jobs whose stated requirements it does not meet go last (or are hidden).
         """
         jobs = self.filter(filters)
@@ -561,20 +574,22 @@ class SkillAnalytics:
             known_set |= {ENGLISH_SKILL}
         missing_sets = jobs["skill_set"].map(lambda required: required - known_set)
         missing_count = missing_sets.map(len).astype("int64")
+        matched_count = jobs["skill_count"] - missing_count
         ranked = jobs.assign(
             missing_set=missing_sets,
             missing_count=missing_count,
-            matched_count=jobs["skill_count"] - missing_count,
+            matched_count=matched_count,
+            unmatched=matched_count == 0,
             coverage=1 - missing_count / jobs["skill_count"],
             blocked=jobs["conflicts"].map(bool).astype(bool),
         )
         ready = int((missing_count == 0).sum())
-        one_away = int((missing_count == 1).sum())
+        one_away = int(((missing_count == 1) & (matched_count > 0)).sum())
         if missing is not None:
-            ranked = ranked[ranked["missing_count"] == missing]
+            ranked = ranked[(ranked["missing_count"] == missing) & ~ranked["unmatched"]]
         ranked = ranked.sort_values(
-            ["blocked", "missing_count", "coverage", "matched_count", "published_at"],
-            ascending=[True, True, False, False, False],
+            ["blocked", "unmatched", "missing_count", "coverage", "matched_count", "published_at"],
+            ascending=[True, True, True, False, False, False],
             na_position="last",
         )
 

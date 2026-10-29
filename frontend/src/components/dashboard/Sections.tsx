@@ -1,7 +1,7 @@
-import type { UseQueryResult } from '@tanstack/react-query'
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
 import type { Filters } from '../../api/endpoints'
-import type { SkillTrend, Summary } from '../../api/schemas'
+import type { Area, Meta, SkillTrend } from '../../api/schemas'
 import {
   useLevelComparison,
   useLocations,
@@ -10,8 +10,9 @@ import {
   useWorkplaces,
 } from '../../hooks/useDashboardData'
 import { useSkillColors } from '../../hooks/useSkillColors'
+import { areasWithJobs, type AreaCount } from '../../lib/areas'
 import { formatDate, formatNumber, formatPercent, formatPoints } from '../../lib/format'
-import { CATEGORY_LABELS, WORKPLACE_LABELS } from '../../lib/labels'
+import { AREA_LABELS, WORKPLACE_LABELS } from '../../lib/labels'
 import { LevelComparisonChart } from '../charts/LevelComparisonChart'
 import { WorkplaceChart } from '../charts/WorkplaceChart'
 import { HorizontalBarChart } from '../charts/TopSkillsChart'
@@ -72,65 +73,52 @@ export function TopSkillsSection({
   )
 }
 
-export function CategorySection({ query }: { query: UseQueryResult<Summary> }) {
-  const categories = [...(query.data?.by_category ?? [])]
-    .filter((category) => category.count > 0)
-    .sort((a, b) => b.share - a.share)
-  const bars = categories.map((category) => ({
-    key: category.category,
-    label: CATEGORY_LABELS[category.category],
-    share: category.share,
-    count: category.count,
-  }))
+/** Fewer postings of either level than this: their shares would swing with each posting. */
+const MIN_LEVEL_JOBS = 10
 
-  return (
-    <ChartCard
-      title="Categorias de competência"
-      subtitle="% das vagas que pedem ao menos uma competência da categoria"
-      query={query}
-      isEmpty={bars.length === 0}
-      table={
-        <DataTable
-          caption="Categorias de competência"
-          columns={[
-            { key: 'label', label: 'Categoria' },
-            { key: 'count', label: 'Vagas', align: 'right' },
-            { key: 'share', label: '% das vagas', align: 'right' },
-          ]}
-          rows={bars.map((bar) => ({
-            label: bar.label,
-            count: formatNumber(bar.count),
-            share: formatPercent(bar.share),
-          }))}
-        />
-      }
-    >
-      <HorizontalBarChart
-        data={bars}
-        totalJobs={query.data?.total_jobs ?? 0}
-        ariaLabel="Participação de cada categoria de competência nas vagas"
-        labelWidth={150}
-      />
-    </ChartCard>
-  )
-}
-
-export function LevelComparisonSection({ filters }: { filters: Filters }) {
+/**
+ * Estágio and Júnior compared inside one area. The levels have different area mixes (most Júnior
+ * postings are support), so across areas the bars would mostly show that mix, not the level: in
+ * Dados, Júnior asks for SQL far more than Estágio, while all areas together say the opposite.
+ * The area filter decides the area; without it the card offers its own choice, starting on the
+ * area with the most jobs.
+ */
+export function LevelComparisonSection({
+  filters,
+  areas: options,
+}: {
+  filters: Filters
+  areas: Meta['areas']
+}) {
+  const areas = areasWithJobs(options)
+  const [picked, setPicked] = useState<Area | undefined>(undefined)
+  const area = filters.area ?? picked ?? areas[0]?.key
+  const areaLabel = area && AREA_LABELS[area]
   const { level: _ignored, ...scope } = filters
-  const query = useLevelComparison(scope, 10)
+  const query = useLevelComparison({ ...scope, area }, 10)
   const data = query.data
   const totals = data?.totals
+  const tooFew = totals !== undefined && Math.min(totals.estagio, totals.junior) < MIN_LEVEL_JOBS
 
   return (
     <ChartCard
       title="Estágio × Júnior: o que muda"
       subtitle={
-        totals
-          ? `Participação nas vagas de cada nível (${formatNumber(totals.estagio)} de estágio, ${formatNumber(totals.junior)} júnior) · ignora o filtro de nível`
-          : 'Participação nas vagas de cada nível · ignora o filtro de nível'
+        totals && areaLabel
+          ? `${areaLabel}: % das ${formatNumber(totals.estagio)} vagas de estágio e das ${formatNumber(totals.junior)} de júnior que pedem cada competência · ignora o filtro de nível`
+          : '% das vagas de cada nível que pedem cada competência · ignora o filtro de nível'
+      }
+      toolbar={
+        !filters.area &&
+        areas.length > 1 && <AreaPicker areas={areas} value={area} onChange={setPicked} />
       }
       query={query}
-      isEmpty={!data || data.items.length === 0}
+      isEmpty={!data || data.items.length === 0 || tooFew}
+      {...(tooFew &&
+        totals && {
+          emptyTitle: 'Poucas vagas para comparar os níveis',
+          emptyHint: `${areaLabel ?? 'Esta área'} tem ${formatNumber(totals.estagio)} de estágio e ${formatNumber(totals.junior)} de júnior com esses filtros; a comparação precisa de ao menos ${MIN_LEVEL_JOBS} de cada.`,
+        })}
       loadingHeight={420}
       legend={
         <Legend
@@ -162,6 +150,41 @@ export function LevelComparisonSection({ filters }: { filters: Filters }) {
     >
       {data && <LevelComparisonChart data={data} />}
     </ChartCard>
+  )
+}
+
+/** The area to compare in, as a segmented control (same look as the chart / table toggle). */
+function AreaPicker({
+  areas,
+  value,
+  onChange,
+}: {
+  areas: readonly AreaCount[]
+  value: Area | undefined
+  onChange: (area: Area) => void
+}) {
+  return (
+    // The legend names the group for screen readers; the span shows it inline (a legend does not
+    // take part in a flex row).
+    <fieldset className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+      <legend className="sr-only">Comparar em</legend>
+      <span aria-hidden className="text-muted text-xs">
+        Comparar em
+      </span>
+      <div className="border-line bg-surface-2 flex flex-wrap rounded-lg border p-0.5">
+        {areas.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={item.key === value}
+            onClick={() => onChange(item.key)}
+            className="segment px-2.5 py-1 text-xs"
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
   )
 }
 
@@ -319,6 +342,9 @@ export function TrendsSection({ filters }: { filters: Filters }) {
   const colors = useSkillColors(data?.skills.map((skill) => skill.slug) ?? [])
   const first = data?.days[0]?.day
   const last = data?.days.at(-1)?.day
+  // A few comparable days only show jobs coming and going: no trend until the API's minimum.
+  const collected = data?.days.length ?? 0
+  const minDays = data?.min_days ?? 7
   const ignored = [
     filters.state,
     filters.city,
@@ -332,9 +358,9 @@ export function TrendsSection({ filters }: { filters: Filters }) {
       title="Tendência: o que está subindo e caindo"
       subtitle={`% das vagas que pedem cada competência, por dia de coleta${first && last ? ` (${formatDate(first)} a ${formatDate(last)})` : ''} · considera só nível e área${ignored ? ' (os outros filtros não se aplicam aqui)' : ''}`}
       query={query}
-      isEmpty={!data || data.days.length < 2}
+      isEmpty={collected < minDays}
       emptyTitle="Ainda não há dias suficientes de coleta"
-      emptyHint="A tendência aparece a partir do segundo dia de histórico."
+      emptyHint={`A tendência aparece com ${formatNumber(minDays)} dias de coleta comparáveis; ${collected === 1 ? 'há 1 até agora' : `há ${formatNumber(collected)} até agora`}. Antes disso, a variação de um dia para o outro é só vaga entrando e saindo.`}
       loadingHeight={300}
       legend={
         data && (

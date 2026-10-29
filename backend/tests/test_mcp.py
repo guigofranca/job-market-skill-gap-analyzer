@@ -136,7 +136,8 @@ def test_market_tools(client: TestClient) -> None:
         ("analyze_profile", {"skills": ["python"] * 61}),
         ("analyze_profile", {"skills": ["python"], "missing": 21}),
         ("top_skills", {"limit": 51}),
-        ("compare_levels", {"limit": 0}),
+        ("compare_levels", {"area": "dados", "limit": 0}),
+        ("compare_levels", {}),  # the area is required: levels are compared inside one
     ],
 )
 def test_invalid_arguments_are_tool_errors(

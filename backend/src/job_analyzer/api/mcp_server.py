@@ -68,7 +68,9 @@ networks, security). The same data as the Empregos e Tendências dashboard.
 - Call list_filters first: skills, states and cities are filtered by the slugs and keys it lists.
 - To match a person (for example from a CV they paste), map what they know to skill slugs and call \
 analyze_profile. It returns the jobs ranked by how many listed skills the person already has, and \
-the skills that would open the most jobs.
+what the jobs that already ask for some of them also ask.
+- The four areas ask for very different skills, and infraestrutura has the most jobs: pass `area` \
+whenever you know what the person is looking for, or the numbers will mostly describe support jobs.
 - Skills were detected in the postings by keywords: treat counts as trends, not exact truth. The \
 full job descriptions are not available here; always give the posting's url so the person can \
 read it and apply.
@@ -245,14 +247,22 @@ def build_mcp_server(get_analytics: Callable[[], SkillAnalytics]) -> MCPServer:
         inclusion: InclusionArg = None,
         missing: Annotated[
             int | None,
-            Field(ge=0, le=20, description="Only jobs missing exactly this many skills (0: ready)"),
+            Field(
+                ge=0,
+                le=20,
+                description=(
+                    "Only jobs missing exactly this many skills (0: ready), among those asking "
+                    "for at least one skill the person has"
+                ),
+            ),
         ] = None,
         limit: JobLimitArg = 10,
         offset: OffsetArg = 0,
     ) -> Annotated[CallToolResult, ProfileAnalysis]:
         """Compare a person's skills with the jobs: how many they are ready to apply for, the jobs
-        ranked by fewest missing skills (with what each one lacks), and the skills to learn next
-        ranked by how many more jobs each one would make ready."""
+        ranked by fewest missing skills (with what each one lacks; jobs asking for none of their
+        skills come last), and the skills to learn next: the most requested by the jobs that
+        already ask for something they know, with how many jobs each one would make ready."""
         scope = {
             "level": level,
             "area": area,
@@ -322,7 +332,7 @@ def build_mcp_server(get_analytics: Callable[[], SkillAnalytics]) -> MCPServer:
     @tool
     def compare_levels(
         *,
-        area: AreaArg = None,
+        area: Annotated[Area, Field(description="The job area to compare the two levels in")],
         state: StateArg = None,
         city: CityArg = None,
         workplace: WorkplaceArg = None,
@@ -330,8 +340,10 @@ def build_mcp_server(get_analytics: Callable[[], SkillAnalytics]) -> MCPServer:
         skill: SkillArg = None,
         limit: Annotated[int, Field(ge=1, le=30, description="Skills to return")] = 12,
     ) -> Annotated[CallToolResult, LevelComparisonResponse]:
-        """What changes from internship (estagio) to junior: the share of jobs of each level that
-        require each of the most requested skills."""
+        """What changes from internship (estagio) to junior inside one area: the share of jobs of
+        each level that require each of the area's most requested skills. The area is required
+        because the levels have different area mixes (most junior jobs are support): across areas
+        the differences would mostly show that mix."""
         params = _validated(
             CompareParams,
             area=area,

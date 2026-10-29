@@ -36,9 +36,20 @@ describe('WorkplaceChart', () => {
     expect(screen.getByText('50%')).toBeInTheDocument()
     expect(screen.getByText('38%')).toBeInTheDocument()
     expect(screen.getByText('13%')).toBeInTheDocument()
-    expect(screen.getByText('100%')).toBeInTheDocument()
     expect(screen.getByText('10 vagas')).toBeInTheDocument()
     expect(screen.getByText('1 vaga')).toBeInTheDocument()
+  })
+
+  it('leaves the shares of a row with few jobs out of the bar, and says why', () => {
+    render(<WorkplaceChart data={data} />)
+    // Dados has a single job: "100% presencial" would read as a finding.
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+    expect(screen.getByText(/menos de 10 vagas/)).toBeInTheDocument()
+  })
+
+  it('has no caption when every row has enough jobs', () => {
+    render(<WorkplaceChart data={{ items: data.items.slice(0, 1) }} />)
+    expect(screen.queryByText(/menos de 10 vagas/)).not.toBeInTheDocument()
   })
 
   it('shows the counts behind the shares on hover', () => {
