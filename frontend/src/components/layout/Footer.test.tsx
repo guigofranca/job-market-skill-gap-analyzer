@@ -3,18 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { Footer } from './Header'
 
 describe('Footer', () => {
-  it('links to the author, the code and the issues for feedback or data removal', () => {
+  it('credits the author as text and links to the issues for feedback or data removal', () => {
     render(<Footer />)
-    expect(screen.getByRole('link', { name: 'guilhermefranca' })).toHaveAttribute(
-      'href',
-      'https://www.linkedin.com/in/guilhermefranca0/',
-    )
-    expect(screen.getByRole('link', { name: 'código aberto no GitHub' })).toHaveAttribute(
-      'href',
-      'https://github.com/guigofranca/job-market-skill-gap-analyzer',
-    )
-    const issues = screen.getByRole('link', { name: 'abra uma issue no GitHub' })
-    expect(issues).toHaveAttribute(
+    expect(screen.getByText('guilhermefranca')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'guilhermefranca' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'abra uma issue no GitHub' })).toHaveAttribute(
       'href',
       'https://github.com/guigofranca/job-market-skill-gap-analyzer/issues/new',
     )

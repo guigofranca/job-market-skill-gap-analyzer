@@ -1,6 +1,6 @@
-/** Who built the dashboard and where the code lives, linked from the footer. */
+/** Who built the dashboard, credited in the footer (as text: the site links to no profile). */
 export const AUTHOR = {
   handle: 'guilhermefranca',
-  linkedin: 'https://www.linkedin.com/in/guilhermefranca0/',
+  /** Where feedback and data-removal requests go, as GitHub issues. */
   repo: 'https://github.com/guigofranca/job-market-skill-gap-analyzer',
 } as const
