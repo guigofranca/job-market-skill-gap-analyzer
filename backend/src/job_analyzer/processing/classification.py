@@ -13,7 +13,7 @@ from collections import Counter
 from collections.abc import Sequence
 
 from job_analyzer.models import Area, Level
-from job_analyzer.processing.skills import CATEGORY_AREA_HINTS, SKILLS_BY_SLUG
+from job_analyzer.processing.skills import CATEGORY_AREA_HINTS, SKILLS_BY_SLUG, SkillCategory
 from job_analyzer.processing.text import matching_form
 
 _I = re.IGNORECASE
@@ -124,6 +124,10 @@ AREA_EXCLUSIONS = re.compile(
     r"|\bpre[\s-]?vendas\b|\baccount (?:manager|executive)\b"
     # Industrial automation (PLCs, mechatronics) is engineering, not software automation.
     r"|\bmecatronica\b|\bautomacao industrial\b|\bcontrole e automacao\b|\beletrotecnic\w*"
+    # The same field as a degree, a technician or plant maintenance ("Elétrica/Automação").
+    r"|\bengenharia (?:de )?automacao\b|\beletric[ao]\s*/\s*automacao\b"
+    r"|\btecnic[oa](?:\(a\))? (?:de |em )?automacao\b(?! de (?:testes?|processos)\b)"
+    r"|\bmanutencao(?: \w+)? e automacao\b"
     # Production / maintenance planners and CNC operators ("Programador de Produção (PCP)").
     r"|\bprogramador(?:a|\(a\))? (?:de )?(?:producao|manutencao|materiais|cnc)\b|\bpcp\b"
     # Field installation work ("Instalador-reparador de linhas de comunicação de dados").
@@ -145,6 +149,12 @@ GENERIC_TECH_TITLE = re.compile(
     _I,
 )
 MIN_SKILLS_FOR_FALLBACK = 2
+INDUSTRIAL_SKILL = "plc"
+SOFTWARE_AUTOMATION_SKILLS = frozenset(
+    slug
+    for slug, skill in SKILLS_BY_SLUG.items()
+    if skill.category is SkillCategory.AUTOMACAO_QA and slug != INDUSTRIAL_SKILL
+)
 # A generic IT role ("Estágio em TI", "Assistente de TI") whose skills point nowhere is support
 # and infrastructure, the usual first job in IT. Only filler words may sit between role and
 # field: "Analista de Negócios TI" and "Analista Governança TI" are other jobs.
@@ -198,6 +208,8 @@ def classify_area(title: str, skills: Sequence[str] = ()) -> Area | None:
         return None
     for area, pattern in AREA_TITLE_RULES:
         if pattern.search(normalized):
+            if area is Area.AUTOMACAO and _is_industrial(skills):
+                return None
             return area
     if GENERIC_TECH_TITLE.search(normalized):
         from_skills = _area_from_skills(skills)
@@ -205,6 +217,11 @@ def classify_area(title: str, skills: Sequence[str] = ()) -> Area | None:
             return Area.INFRAESTRUTURA
         return from_skills
     return None
+
+
+def _is_industrial(skills: Sequence[str]) -> bool:
+    """A bare "Automação" title asking for PLCs and no software automation tool is a plant job."""
+    return INDUSTRIAL_SKILL in skills and not SOFTWARE_AUTOMATION_SKILLS.intersection(skills)
 
 
 def _area_from_skills(skills: Sequence[str]) -> Area | None:

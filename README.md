@@ -36,7 +36,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   o passo a passo.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 408 testes no backend (pytest, 95% de cobertura) e 174 no frontend (Vitest),
+- **Qualidade**: 419 testes no backend (pytest, 95% de cobertura) e 175 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -587,13 +587,13 @@ descrições. Para desligar: `API_ENABLE_MCP=false`.
 
 ```bash
 # Backend (dentro de backend/, com o venv ativo)
-pytest --cov                 # 408 testes: skills, classificação, limpeza, fontes (HTTP mockado),
+pytest --cov                 # 419 testes: skills, classificação, limpeza, fontes (HTTP mockado),
                              # cliente HTTP, storage, analytics, API, servidor MCP e configuração
 ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (174 testes)
+npm test                     # Vitest + Testing Library (175 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium
@@ -674,8 +674,9 @@ metade (sinal de que uma fonte mudou a API), o dataset anterior é mantido e a e
   a primeira coleta que contou os cargos de entrada sem "júnior" no título (antes disso, o total
   de vagas não é comparável; a Remotar já tinha saído das fontes em 15/10/2026). O gráfico e o
   "em alta / em queda" só aparecem com 7 dias comparáveis: antes disso, a variação de um dia para
-  o outro é só vaga entrando e saindo. O histórico é agregado por nível × área, então a
-  tendência ignora os outros filtros.
+  o outro é só vaga entrando e saindo. Em Automação, a série parte de 30/10/2026, quando a
+  automação industrial (engenharias, técnicos de planta, CLP) saiu da área. O histórico é
+  agregado por nível × área, então a tendência ignora os outros filtros.
 - Ideias: persistir o histórico em um banco (DuckDB/PostgreSQL).
 
 ---

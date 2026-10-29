@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from job_analyzer.analytics.trends import COMPARABLE_SINCE, skill_trends
+from job_analyzer.analytics.trends import COMPARABLE_SINCE, COMPARABLE_SINCE_BY_AREA, skill_trends
 from job_analyzer.api.app import create_app
 from job_analyzer.config import Settings
 from job_analyzer.models import Area, Dataset, History, HistoryPoint, Level
@@ -125,6 +125,26 @@ def test_the_series_starts_on_the_first_comparable_day() -> None:
     ]
     trends = skill_trends(History(points=points), days=30, limit=5)
     assert [day.day for day in trends.days] == [COMPARABLE_SINCE]
+
+
+def test_an_area_whose_rules_changed_starts_later() -> None:
+    since = COMPARABLE_SINCE_BY_AREA[Area.AUTOMACAO]
+    first = (since - FIRST_DAY).days
+    history = History(
+        points=[
+            _point(
+                offset,
+                _segment(Level.ESTAGIO, Area.AUTOMACAO, jobs, {"python": 9}),
+                _segment(Level.ESTAGIO, Area.DADOS, 100, {"sql": 50}),
+            )
+            for offset, jobs in ((first - 1, 38), (first, 31))
+        ]
+    )
+    automacao = skill_trends(history, area=Area.AUTOMACAO, days=30, limit=5)
+    assert [(day.day, day.jobs) for day in automacao.days] == [(since, 31)]
+    # Other areas, and all areas together, keep the earlier day.
+    assert len(skill_trends(history, area=Area.DADOS, days=30, limit=5).days) == 2
+    assert len(skill_trends(history, days=30, limit=5).days) == 2
 
 
 def test_movers_need_two_days_and_enough_jobs(history: History) -> None:

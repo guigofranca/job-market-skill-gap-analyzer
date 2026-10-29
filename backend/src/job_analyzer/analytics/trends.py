@@ -18,6 +18,10 @@ from job_analyzer.processing.skills import SKILLS_BY_SLUG
 # de TI", "Analista de Dados I") count from the 2026-10-26 collection (a jump that wasn't). Move
 # this date when either changes.
 COMPARABLE_SINCE = date(2026, 10, 26)
+# A rule change confined to one area restarts that area only: Automação leaves out industrial
+# automation (engineering degrees, plant technicians, PLCs) from the 2026-10-30 collection, which
+# moved every other slice by less than MIN_MOVER_CHANGE.
+COMPARABLE_SINCE_BY_AREA: dict[Area, date] = {Area.AUTOMACAO: date(2026, 10, 30)}
 # Fewer comparable days than this show no movers: a few jobs coming and going from one day to the
 # next is noise, not a trend.
 MIN_TREND_DAYS = 7
@@ -41,7 +45,8 @@ def skill_trends(
     empty = TrendsResponse(days=[], skills=[], rising=[], falling=[], min_days=min_days)
     if not history.points:
         return empty
-    start = max(history.points[-1].day - timedelta(days=days - 1), COMPARABLE_SINCE)
+    since = COMPARABLE_SINCE_BY_AREA.get(area, COMPARABLE_SINCE) if area else COMPARABLE_SINCE
+    start = max(history.points[-1].day - timedelta(days=days - 1), since)
     series: list[tuple[date, int, Counter[str]]] = []
     for point in history.points:
         if point.day < start:

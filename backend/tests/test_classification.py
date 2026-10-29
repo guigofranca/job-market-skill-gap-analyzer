@@ -113,6 +113,18 @@ def test_classify_level(title: str, hints: list[str], expected: Level | None) ->
         ("Gerente de Negócios Júnior (SOFTWARE)", [], None),
         ("Instalador-reparador de linhas de comunicação de dados Jr", [], None),
         ("Estagiário - Engenharia de Controle e Automação / Mecatrônica", [], None),
+        # Industrial automation is engineering: degrees, technicians, plant maintenance and PLCs.
+        ("Estágio em Engenharia Mecânica, Engenharia Elétrica, Engenharia de Automação", [], None),
+        ("Programa de Estágio (Engenharia de Automação / Elétrica) - Maceió/AL", [], None),
+        ("Estagiário de Engenharia Elétrica/Automação em São Luís", [], None),
+        ("Técnico de Automação Junior - BH", [], None),
+        ("Estagiário(a) Técnico - Manutenção AT e Automação Norte", [], None),
+        ("Estagiário Automação - Lorena/SP", ["power-bi", "excel", "plc"], None),
+        # ...while software automation stays, even next to an engineering degree or a PLC.
+        ("Estagiário Automação - Lorena/SP", ["plc", "power-automate"], Area.AUTOMACAO),
+        ("Técnico de Automação de Testes Jr", [], Area.AUTOMACAO),
+        ("Estágio em Engenharia Elétrica/Eletrônica — QA e Integração", [], Area.AUTOMACAO),
+        ("Engenheiro de Automação Júnior (RPA)", [], Area.AUTOMACAO),
         ("Programador de Produção Jr (PCP) - Vaga Afirmativa", ["excel"], None),
         ("Programador(a) de Manutenção Júnior", [], None),
         ("Estágio em PCP", ["excel", "power-bi"], None),

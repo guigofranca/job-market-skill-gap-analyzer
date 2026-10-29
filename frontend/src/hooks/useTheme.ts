@@ -23,6 +23,9 @@ export function useTheme() {
     if (preference) root.dataset.theme = preference
     else delete root.dataset.theme
     writeStorage(STORAGE_KEY, preference)
+    // The phone's browser bar takes the header's color, which the CSS tokens set per theme.
+    const header = getComputedStyle(root).getPropertyValue('--header').trim()
+    if (header) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', header)
   }, [preference])
 
   const theme = preference ?? DEFAULT_THEME
