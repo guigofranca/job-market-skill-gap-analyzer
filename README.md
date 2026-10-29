@@ -36,7 +36,7 @@ Infraestrutura, atualizado todo dia por um pipeline ETL em Python.
   o passo a passo.
 - **React 19 + TypeScript estrito**: Zod valida toda resposta da API; TanStack Query; cada
   gráfico (Recharts) tem uma tabela acessível; tema claro e escuro.
-- **Qualidade**: 408 testes no backend (pytest, 95% de cobertura) e 171 no frontend (Vitest),
+- **Qualidade**: 408 testes no backend (pytest, 95% de cobertura) e 174 no frontend (Vitest),
   E2E com Playwright e checagem de acessibilidade (axe) no celular e no desktop; `mypy --strict`,
   ruff, oxlint, CodeQL, gitleaks, `pip-audit` e `npm audit` no CI.
 
@@ -194,8 +194,12 @@ pessoal de candidatos é coletado. A coleta roda uma vez por dia, com uma requis
 um *User-Agent* que identifica o projeto e aponta para este repositório.
 
 **Remoção de dados:** se você representa a Gupy, a Sólides ou uma empresa listada e prefere que
-suas vagas não apareçam aqui, abra uma *issue* neste repositório. A fonte pode ser desligada na
-hora (`ENABLED_SOURCES`) e as vagas saem do dataset na atualização seguinte.
+suas vagas não apareçam aqui, abra uma *issue* neste repositório (o rodapé do site leva até ela).
+A fonte pode ser desligada na hora (`ENABLED_SOURCES`) e as vagas saem do dataset na atualização
+seguinte.
+
+**Visitas:** o site conta visualizações com o Vercel Web Analytics, sem cookies e sem dados
+pessoais. O perfil de um link compartilhado (`?perfil=python,sql`) sai do endereço antes do envio.
 
 ---
 
@@ -589,7 +593,7 @@ ruff check src tests && ruff format --check src tests
 mypy                         # modo strict
 
 # Frontend (dentro de frontend/)
-npm test                     # Vitest + Testing Library (171 testes)
+npm test                     # Vitest + Testing Library (174 testes)
 npm run e2e                  # Playwright: fluxo completo com a API e o dataset reais, no celular
                              # (Pixel 7) e no desktop, com checagem de acessibilidade (axe)
                              # 1ª vez: npx playwright install chromium

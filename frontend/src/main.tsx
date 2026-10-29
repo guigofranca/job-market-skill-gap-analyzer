@@ -1,11 +1,13 @@
 import './config/zod'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Analytics } from '@vercel/analytics/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ApiError } from './api/client'
 import App from './App'
 import { ErrorBoundary } from './components/feedback/ErrorBoundary'
 import { AppFallback } from './components/feedback/Fallbacks'
+import { withoutProfile } from './lib/analytics'
 import '@fontsource-variable/geist'
 import './index.css'
 
@@ -32,5 +34,7 @@ createRoot(container).render(
         <App />
       </QueryClientProvider>
     </ErrorBoundary>
+    {/* Production only: in development it would load a debug script from Vercel's CDN. */}
+    {import.meta.env.PROD && <Analytics beforeSend={withoutProfile} />}
   </StrictMode>,
 )

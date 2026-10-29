@@ -116,7 +116,24 @@ export function Footer() {
     <footer className="border-line text-muted mt-8 border-t">
       <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 text-xs sm:px-6">
         <p className="text-ink-2 text-sm">
-          Feito por <span className="text-ink font-medium">{AUTHOR.handle}</span>
+          Feito por{' '}
+          <a
+            className="text-ink hover:text-accent font-medium underline-offset-2 hover:underline"
+            href={AUTHOR.linkedin}
+            target="_blank"
+            rel="me noopener noreferrer"
+          >
+            {AUTHOR.handle}
+          </a>{' '}
+          ·{' '}
+          <a
+            className="hover:text-ink underline"
+            href={AUTHOR.repo}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            código aberto no GitHub
+          </a>
         </p>
         <p>
           Fontes: vagas públicas publicadas no Brasil pela{' '}
@@ -142,6 +159,18 @@ export function Footer() {
         <p>
           Projeto educacional e de portfólio. Competências extraídas por palavras-chave: os números
           indicam tendência, não verdade absoluta.
+        </p>
+        <p>
+          Sugestões, erros ou pedido de remoção de dados:{' '}
+          <a
+            className="hover:text-ink underline"
+            href={`${AUTHOR.repo}/issues/new`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            abra uma issue no GitHub
+          </a>
+          .
         </p>
       </div>
     </footer>
